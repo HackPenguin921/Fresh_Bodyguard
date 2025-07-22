@@ -72,4 +72,22 @@ async def on_message(message):
         converted = convert_to_style(message.content, mode) if mode else message.content
         await dest_channel.send(converted)
 
+@bot.command()
+async def mode(ctx, *, mode_name=None):
+    # 受け取ったコマンドメッセージを削除（権限必要）
+    try:
+        await ctx.message.delete()
+    except discord.Forbidden:
+        print("メッセージ削除権限がありません")
+
+    if not mode_name:
+        await ctx.send("モード名を指定してにゃん。例： `/mode 猫`")
+        return
+    if mode_name in ["off", "reset", "なし"]:
+        user_modes.pop(ctx.author.id, None)
+        await ctx.send("モードをリセットしたにゃん。")
+    else:
+        user_modes[ctx.author.id] = mode_name
+        await ctx.send(f"{ctx.author.display_name} のモードを `{mode_name}` に設定したにゃん！")
+
 bot.run(TOKEN)

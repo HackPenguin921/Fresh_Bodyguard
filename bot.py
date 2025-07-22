@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 import discord
 
-load_dotenv()  # .envファイルを読み込み
+load_dotenv()
 
 TOKEN = os.getenv("BOT_TOKEN")
 SOURCE_CHANNEL_ID = int(os.getenv("SOURCE_CHANNEL_ID"))
@@ -27,6 +27,6 @@ async def on_message(message):
         if dest_channel is None:
             print("Destination channel not found!")
             return
-        await dest_channel.send(f"{message.author.display_name}: {message.content}")
+        await dest_channel.send(message.content)  # 送信者名なし
 
 client.run(TOKEN)

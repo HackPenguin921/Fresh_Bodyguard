@@ -343,3 +343,8 @@ async def on_message(message):
 async def on_ready():
     await bot.tree.sync()
     print(f"ログイン完了: {bot.user}")
+
+if __name__ == "__main__":
+    load_data()
+    bot.run(TOKEN)
+

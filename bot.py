@@ -180,7 +180,7 @@ async def build(ctx, *, structure_name):
 
 bot = commands.Bot(command_prefix='!', intents=intents, help_command=None)
 # ---------- ヘルプコマンド ----------
-@bot.command(name="help")
+@bot.command(name="helpMine")
 async def help_command(ctx):
     help_text = (
         "🎮 **遊べるコマンド一覧** 🎮\n"

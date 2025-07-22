@@ -135,3 +135,6 @@ async def mine(ctx):
 async def level(ctx):
     data = user_levels[ctx.author.id]
     await ctx.send(f"🔼 {ctx.author.display_name} の採掘レベル: Lv.{data['level']}（XP: {data['xp']}）")
+
+load_data()  # ← ゲームデータの読み込み
+bot.run(TOKEN)  # ← Bot を起動

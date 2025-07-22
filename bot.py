@@ -97,7 +97,7 @@ async def mode(ctx, *, mode_name=None):
 
 @bot.command()
 async def mine(ctx):
-    drops = ['石', '石炭', '鉄', '金', 'ダイヤモンド', 'エメラルド', '何も見つからなかった']
+    drops = ['石', '石炭', '鉄', '金', 'ダイヤモンド', 'エメラルド', '回復薬', '何も見つからなかった']
     item = random.choice(drops)
 
     if item != '何も見つからなかった':
@@ -178,6 +178,27 @@ async def build(ctx, *, structure_name):
     reward_text = " / ".join([f"{item}×{qty}" for item, qty in rewards.items()])
     await ctx.send(f"🏗️ {ctx.author.display_name} は「{structure_name}」を完成！\n💰 報酬：{reward_text}")
 
+# ---------- 回復薬使用コマンド ----------
+@bot.command()
+async def use_potion(ctx):
+    inventory = user_inventories[ctx.author.id]
+    if "回復薬" not in inventory:
+        await ctx.send(f"💊 {ctx.author.display_name} のインベントリに回復薬がありません！")
+        return
+
+    state = player_states[ctx.author.id]
+    if not state["alive"]:
+        await ctx.send(f"⚠️ {ctx.author.display_name} は倒れているので回復薬を使えません。`!back` で復活してください。")
+        return
+
+    heal_amount = 50
+    old_hp = state["hp"]
+    state["hp"] = min(state["hp"] + heal_amount, state["max_hp"])
+
+    inventory.remove("回復薬")
+
+    await ctx.send(f"💊 {ctx.author.display_name} は回復薬を使ってHPが {old_hp} → {state['hp']} に回復した！")
+
 @bot.command(name="helpMine")
 async def help_command(ctx):
     help_text = (
@@ -188,6 +209,7 @@ async def help_command(ctx):
         "・`!back` - 死んだらこのコマンドで復活しよう！\n"
         "・`!build 建築物名` - 建築物を建てて報酬をゲット！\n"
         "    登録済み建築物: 小屋, 見張り塔, 城, 農場, 砦\n"
+        "・`!use_potion` - 回復薬を使ってHPを回復しよう！\n"
         "・`/mode モード名` - 発言の口調を変えられるよ！（猫、お嬢様、中二病、執事、幼女、ロボ、さくらみこなど）\n"
         "\n"
         "※通常の発言は `SOURCE_CHANNEL_ID` チャンネルで行い、変換された発言が別チャンネルに送られます。\n"

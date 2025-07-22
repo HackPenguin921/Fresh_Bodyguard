@@ -16,7 +16,8 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True  # attack対象指定に必要
 
-bot = commands.Bot(command_prefix='!', intents=intents)
+# helpコマンドは自作するのでNoneに設定
+bot = commands.Bot(command_prefix='!', intents=intents, help_command=None)
 
 user_modes = {}
 user_inventories = defaultdict(list)
@@ -52,10 +53,35 @@ def convert_to_style(text, mode):
     else:
         return text
 
-# ---------- 通常メッセージ処理 ----------
+# ---------- イベント ----------
+
 @bot.event
 async def on_ready():
     print(f"✅ Bot ready as {bot.user}")
+
+@bot.event
+async def on_message(message):
+    if message.author.bot:
+        return
+
+    # / から始まるコマンドは無視（modeコマンドも除外）
+    if message.content.startswith("/"):
+        return
+
+    await bot.process_commands(message)
+
+    # チャンネルIDによる発言転送
+    if message.channel.id == SOURCE_CHANNEL_ID:
+        dest_channel = bot.get_channel(DEST_CHANNEL_ID)
+        if dest_channel is None:
+            print("❌ 転送先チャンネルが見つかりません")
+            return
+
+        mode = user_modes.get(message.author.id)
+        converted = convert_to_style(message.content, mode) if mode else message.content
+        await dest_channel.send(converted)
+
+# ---------- コマンド ----------
 
 @bot.command()
 async def mode(ctx, *, mode_name=None):
@@ -69,30 +95,6 @@ async def mode(ctx, *, mode_name=None):
         user_modes[ctx.author.id] = mode_name
         await ctx.send(f"{ctx.author.display_name} のモードを `{mode_name}` に設定したにゃん！")
 
-@bot.event
-async def on_message(message):
-    if message.author.bot:
-        return
-
-    # / から始まるコマンドは無視
-    if message.content.startswith("/"):
-        return
-
-    await bot.process_commands(message)
-
-    # チャンネルIDによる発言転送などはここでOK
-    if message.channel.id == SOURCE_CHANNEL_ID:
-        dest_channel = bot.get_channel(DEST_CHANNEL_ID)
-        if dest_channel is None:
-            print("❌ 転送先チャンネルが見つかりません")
-            return
-
-        mode = user_modes.get(message.author.id)
-        converted = convert_to_style(message.content, mode) if mode else message.content
-        await dest_channel.send(converted)
-
-
-# ---------- 採掘コマンド ----------
 @bot.command()
 async def mine(ctx):
     drops = ['石', '石炭', '鉄', '金', 'ダイヤモンド', 'エメラルド', '何も見つからなかった']
@@ -116,7 +118,6 @@ async def inventory(ctx):
         inventory_list = '\n'.join([f"{item} x{qty}" for item, qty in count.items()])
         await ctx.send(f"🎒 {ctx.author.display_name} のインベントリ：\n{inventory_list}")
 
-# ---------- 攻撃コマンド ----------
 @bot.command()
 async def attack(ctx, target: discord.Member):
     attacker_id = ctx.author.id
@@ -142,7 +143,6 @@ async def attack(ctx, target: discord.Member):
     else:
         await ctx.send(f"{ctx.author.display_name} が {target.display_name} に {damage} ダメージを与えた！ 残りHP: {target_state['hp']}")
 
-# ---------- 蘇生コマンド ----------
 @bot.command()
 async def back(ctx):
     user_id = ctx.author.id
@@ -155,7 +155,6 @@ async def back(ctx):
         state["alive"] = True
         await ctx.send(f"🧬 {ctx.author.display_name} が `!back` で復活！ HP: {state['hp']}")
 
-# ---------- 建築報酬コマンド ----------
 @bot.command()
 async def build(ctx, *, structure_name):
     user_id = ctx.author.id
@@ -171,7 +170,6 @@ async def build(ctx, *, structure_name):
     rewards = BUILDING_REWARDS[structure_name]
     inventory = user_inventories[user_id]
 
-    # 報酬を追加
     for item, amount in rewards.items():
         inventory.extend([item] * amount)
 
@@ -180,8 +178,6 @@ async def build(ctx, *, structure_name):
     reward_text = " / ".join([f"{item}×{qty}" for item, qty in rewards.items()])
     await ctx.send(f"🏗️ {ctx.author.display_name} は「{structure_name}」を完成！\n💰 報酬：{reward_text}")
 
-bot = commands.Bot(command_prefix='!', intents=intents, help_command=None)
-# ---------- ヘルプコマンド ----------
 @bot.command(name="helpMine")
 async def help_command(ctx):
     help_text = (

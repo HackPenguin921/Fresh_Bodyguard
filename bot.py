@@ -178,6 +178,7 @@ async def build(ctx, *, structure_name):
     reward_text = " / ".join([f"{item}×{qty}" for item, qty in rewards.items()])
     await ctx.send(f"🏗️ {ctx.author.display_name} は「{structure_name}」を完成！\n💰 報酬：{reward_text}")
 
+bot = commands.Bot(command_prefix='!', intents=intents, help_command=None)
 # ---------- ヘルプコマンド ----------
 @bot.command(name="help")
 async def help_command(ctx):

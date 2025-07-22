@@ -15,7 +15,7 @@ DEST_CHANNEL_ID = int(os.getenv("DEST_CHANNEL_ID"))
 
 intents = discord.Intents.default()
 intents.message_content = True
-intents.members = True  # attack対象指定に必要
+intents.members = True  # 攻撃対象指定に必要
 
 bot = commands.Bot(command_prefix='!', intents=intents, help_command=None)
 
@@ -25,6 +25,7 @@ user_modes = {}
 user_inventories = defaultdict(list)
 player_states = defaultdict(lambda: {"hp": 100, "max_hp": 100, "alive": True})
 built_structures = defaultdict(set)
+user_equips = defaultdict(lambda: {"weapon": "素手", "armor": None})
 
 BUILDING_REWARDS = {
     "小屋": {"ゴールド": 2},
@@ -34,12 +35,24 @@ BUILDING_REWARDS = {
     "砦": {"ダイヤモンド": 1, "エメラルド": 1},
 }
 
+WEAPONS = {
+    "素手": {"attack": (5, 10), "defense": 0},
+    "剣": {"attack": (20, 40), "defense": 0},
+    "盾": {"attack": (0, 0), "defense": 20},
+    "弓矢": {"attack": (15, 30), "defense": 0},
+    "TNT": {"attack": (30, 50), "defense": 0},
+    "呪いの魔法": {"attack": (25, 45), "defense": 0},
+    "トライデント": {"attack": (18, 35), "defense": 0},
+    "メイス": {"attack": (22, 38), "defense": 0},
+}
+
 def save_data():
     data = {
         "user_modes": user_modes,
         "user_inventories": dict(user_inventories),
         "player_states": dict(player_states),
         "built_structures": {k: list(v) for k, v in built_structures.items()},
+        "user_equips": dict(user_equips),
     }
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
@@ -61,6 +74,9 @@ def load_data():
     built_structures.clear()
     for k, v in data.get("built_structures", {}).items():
         built_structures[int(k)] = set(v)
+    user_equips.clear()
+    for k, v in data.get("user_equips", {}).items():
+        user_equips[int(k)] = v
 
 # ---------- 文字変換 ----------
 def convert_to_style(text, mode):
@@ -126,7 +142,9 @@ async def mode(ctx, *, mode_name=None):
 
 @bot.command()
 async def mine(ctx):
-    drops = ['石', '石炭', '鉄', '金', 'ダイヤモンド', 'エメラルド', '回復薬', '何も見つからなかった']
+    drops = ['石', '石炭', '鉄', '金', 'ダイヤモンド', 'エメラルド', '回復薬',
+             '剣', '盾', '弓矢', 'TNT', '呪いの魔法', 'トライデント', 'メイス',
+             '何も見つからなかった']
     item = random.choice(drops)
 
     if item != '何も見つからなかった':
@@ -146,7 +164,40 @@ async def inventory(ctx):
         for item in inv:
             count[item] = count.get(item, 0) + 1
         inventory_list = '\n'.join([f"{item} x{qty}" for item, qty in count.items()])
-        await ctx.send(f"🎒 {ctx.author.display_name} のインベントリ：\n{inventory_list}")
+
+        # 装備中の武器・防具表示
+        equips = user_equips.get(ctx.author.id, {"weapon": "素手", "armor": None})
+        weapon = equips.get("weapon", "素手")
+        armor = equips.get("armor", "なし")
+
+        await ctx.send(
+            f"🎒 {ctx.author.display_name} のインベントリ：\n{inventory_list}\n"
+            f"🛡️ 装備中の武器: {weapon}\n"
+            f"🛡️ 装備中の防具: {armor if armor else 'なし'}"
+        )
+
+@bot.command()
+async def equip(ctx, *, item_name):
+    user_id = ctx.author.id
+    inventory = user_inventories[user_id]
+
+    if item_name not in inventory:
+        await ctx.send(f"❌ {item_name} はインベントリにありません。")
+        return
+
+    if item_name not in WEAPONS:
+        await ctx.send(f"❌ {item_name} は装備できません。")
+        return
+
+    # 盾だけarmor、それ以外はweaponに装備
+    if item_name == "盾":
+        user_equips[user_id]["armor"] = item_name
+        await ctx.send(f"🛡️ {ctx.author.display_name} は盾を装備した！")
+    else:
+        user_equips[user_id]["weapon"] = item_name
+        await ctx.send(f"⚔️ {ctx.author.display_name} は {item_name} を装備した！")
+
+    save_data()
 
 @bot.command()
 async def attack(ctx, target: discord.Member):
@@ -164,7 +215,20 @@ async def attack(ctx, target: discord.Member):
         await ctx.send(f"{target.display_name} はすでに倒れています！")
         return
 
-    damage = random.randint(10, 30)
+    weapon_name = user_equips[attacker_id].get("weapon", "素手")
+    armor_name = user_equips[target_id].get("armor", None)
+
+    attack_min, attack_max = WEAPONS.get(weapon_name, WEAPONS["素手"])["attack"]
+    base_damage = random.randint(attack_min, attack_max)
+
+    defense = 0
+    if armor_name and armor_name in WEAPONS:
+        defense = WEAPONS[armor_name]["defense"]
+
+    damage = base_damage - defense
+    if damage < 1:
+        damage = 1
+
     target_state["hp"] -= damage
     if target_state["hp"] <= 0:
         target_state["hp"] = 0
@@ -221,7 +285,7 @@ async def use_potion(ctx):
 
     state = player_states[ctx.author.id]
     if not state["alive"]:
-        await ctx.send(f"⚠️ {ctx.author.display_name} は倒れているので回復薬を使えません。`!back` で復活してください。")
+        await ctx.send(f"⚠️ {ctx.author.display名} は倒れているので回復薬を使えません。`!back` で復活してください。")
         return
 
     heal_amount = 50
@@ -239,6 +303,7 @@ async def help_command(ctx):
         "🎮 **遊べるコマンド一覧** 🎮\n"
         "・`!mine` - 採掘をしてアイテムをゲットしよう！\n"
         "・`!inventory` - 自分の持っているアイテムを確認しよう！\n"
+        "・`!equip アイテム名` - 武器や盾を装備しよう！\n"
         "・`!attack @ユーザー` - 他のプレイヤーを攻撃するよ！(生きている時のみ)\n"
         "・`!back` - 死んだらこのコマンドで復活しよう！\n"
         "・`!build 建築物名` - 建築物を建てて報酬をゲット！\n"

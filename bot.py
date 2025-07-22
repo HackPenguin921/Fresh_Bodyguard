@@ -74,12 +74,13 @@ async def on_message(message):
     if message.author.bot:
         return
 
-    await bot.process_commands(message)
-
-    # /から始まるコマンドは無視（modeコマンドも含む）
+    # / から始まるコマンドは無視
     if message.content.startswith("/"):
         return
 
+    await bot.process_commands(message)
+
+    # チャンネルIDによる発言転送などはここでOK
     if message.channel.id == SOURCE_CHANNEL_ID:
         dest_channel = bot.get_channel(DEST_CHANNEL_ID)
         if dest_channel is None:
@@ -89,6 +90,7 @@ async def on_message(message):
         mode = user_modes.get(message.author.id)
         converted = convert_to_style(message.content, mode) if mode else message.content
         await dest_channel.send(converted)
+
 
 # ---------- 採掘コマンド ----------
 @bot.command()

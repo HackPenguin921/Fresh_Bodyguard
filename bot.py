@@ -263,6 +263,22 @@ async def build(ctx, *, building_name: str):
 
     await ctx.send(f"{ctx.author.display_name} は {building_name} を建築しました！報酬: {', '.join(f'{k} x{v}' for k,v in rewards.items())}")
 
+@bot.command()
+async def golem(ctx):
+    help_text = (
+        "🧱 **Golem ゲームの遊び方**\n"
+        "`!mine`：採掘してアイテムと経験値をゲット\n"
+        "`!inventory`：インベントリを確認\n"
+        "`!level`：レベルと経験値を表示\n"
+        "`!equip アイテム名`：武器や盾を装備\n"
+        "`!attack @ユーザー`：他プレイヤーに攻撃\n"
+        "`!use_potion`：回復薬でHP回復\n"
+        "`!build 建物名`：建物を建てて報酬ゲット\n"
+        "`/mode モード名`：発言モードを変更（猫・執事など）\n"
+        "`!back`：拠点に戻ってHP全回復\n"
+    )
+    await ctx.send(help_text)
+
 
 @bot.command()
 async def use_potion(ctx):

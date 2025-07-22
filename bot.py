@@ -66,23 +66,28 @@ player_data = defaultdict(lambda: {
     "structures": [],
     "mode": None
 })
-# player_data[user_id] は存在している前提
-default_fields = {
-    "exp": 0,
-    "level": 1,
-    "hp": 100,
-    "max_hp": 100,
-    "weapon": "素手",
-    "armor": None,
-    "potions": 1,
-    "mode": "平和",
-    "alive": True,
-    "structures": [],
-    "inventory": [],
-}
-for key, value in default_fields.items():
-    if key not in player_data[user_id]:
-        player_data[user_id][key] = value
+def ensure_player_defaults(user_id):
+    defaults = {
+        "inventory": [],
+        "level": 1,
+        "exp": 0,
+        "hp": 100,
+        "max_hp": 100,
+        "weapon": "素手",
+        "armor": None,
+        "potions": 1,
+        "mode": "平和",
+        "alive": True,
+        "structures": [],
+    }
+
+    if user_id not in player_data:
+        player_data[user_id] = defaults.copy()
+    else:
+        for key, value in defaults.items():
+            if key not in player_data[user_id]:
+                player_data[user_id][key] = value
+
 
 
 WEAPONS = {
@@ -151,6 +156,7 @@ def save_data():
 @bot.command()
 async def mine(ctx):
     user_id = str(ctx.author.id)
+    ensure_player_defaults(user_id)
     if user_id not in player_data:
         player_data[user_id] = {
             "inventory": [],

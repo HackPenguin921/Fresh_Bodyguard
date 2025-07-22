@@ -14,10 +14,8 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix='/', intents=intents)
 
-# ユーザーごとのモードを保存
 user_modes = {}
 
-# キャラ変換関数
 def convert_to_style(text, mode):
     text = text.strip()
     base = re.sub(r'[。\.、,！!？?]', '', text)
@@ -37,7 +35,7 @@ def convert_to_style(text, mode):
     elif mode == "さくらみこ":
         return f"にゃっはろ〜！{base}にぇ☆"
     else:
-        return text  # モードなしなら変換しない
+        return text
 
 @bot.event
 async def on_ready():
@@ -62,8 +60,8 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
-    # コマンドは転送しない
-    if message.content.startswith(bot.command_prefix):
+    # コマンドは転送しない（大文字小文字も考慮）
+    if message.content.lower().startswith(bot.command_prefix):
         return
 
     if message.channel.id == SOURCE_CHANNEL_ID:

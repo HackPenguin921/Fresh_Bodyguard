@@ -64,7 +64,6 @@ ALL_ITEMS = sum(RARITY.values(), []) + [
     "村人のスポーンエッグ", "エンダーマンのスポーンエッグ", "何も見つからなかった"
 ]
 
-# XPに応じたレベルアップ
 LEVEL_THRESHOLDS = [0, 10, 25, 45, 70, 100, 140, 185, 235, 290]  # Level 1~10
 
 def gain_xp(user_id, amount):
@@ -73,7 +72,6 @@ def gain_xp(user_id, amount):
     while (level_data["level"] < len(LEVEL_THRESHOLDS) and
            level_data["xp"] >= LEVEL_THRESHOLDS[level_data["level"]]):
         level_data["level"] += 1
-
 
 def save_data():
     data = {
@@ -86,7 +84,6 @@ def save_data():
     }
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
-
 
 def load_data():
     if not os.path.exists(DATA_FILE):
@@ -112,6 +109,7 @@ def load_data():
     for k, v in data.get("user_levels", {}).items():
         user_levels[int(k)] = v
 
+# --------------------- コマンド群 ---------------------
 
 @bot.command()
 async def mine(ctx):
@@ -130,11 +128,184 @@ async def mine(ctx):
         await ctx.send(f"😢 {ctx.author.display_name} は何も見つからなかった…")
     save_data()
 
+@bot.command()
+async def inventory(ctx):
+    user_id = ctx.author.id
+    items = user_inventories[user_id]
+    if not items:
+        await ctx.send(f"📦 {ctx.author.display_name} のインベントリは空っぽです。")
+    else:
+        counts = {}
+        for it in items:
+            counts[it] = counts.get(it, 0) + 1
+        msg = "📦 あなたの持ち物一覧:\n"
+        for it, cnt in counts.items():
+            msg += f"・{it} x{cnt}\n"
+        await ctx.send(msg)
 
 @bot.command()
 async def level(ctx):
     data = user_levels[ctx.author.id]
     await ctx.send(f"🔼 {ctx.author.display_name} の採掘レベル: Lv.{data['level']}（XP: {data['xp']}）")
 
-load_data()  # ← ゲームデータの読み込み
-bot.run(TOKEN)  # ← Bot を起動
+@bot.command()
+async def equip(ctx, *, item_name: str):
+    user_id = ctx.author.id
+    items = user_inventories[user_id]
+    if item_name not in items:
+        await ctx.send(f"❌ {item_name} はインベントリにありません。")
+        return
+
+    # 装備可能な武器か盾か判定
+    if item_name in WEAPONS:
+        # 武器として装備
+        user_equips[user_id]["weapon"] = item_name
+        await ctx.send(f"⚔️ {ctx.author.display_name} は {item_name} を武器として装備しました。")
+    elif item_name == "盾":
+        user_equips[user_id]["armor"] = item_name
+        await ctx.send(f"🛡️ {ctx.author.display_name} は 盾 を防具として装備しました。")
+    else:
+        await ctx.send(f"❌ {item_name} は装備できません。")
+        return
+
+    # 装備したものはインベントリから1つ減らす
+    items.remove(item_name)
+    save_data()
+
+@bot.command()
+async def attack(ctx, target: discord.Member):
+    attacker_id = ctx.author.id
+    target_id = target.id
+
+    # 生存チェック
+    if not player_states[attacker_id]["alive"]:
+        await ctx.send("❌ あなたは死んでいるため攻撃できません。")
+        return
+    if not player_states[target_id]["alive"]:
+        await ctx.send(f"❌ {target.display_name} はすでに倒れています。")
+        return
+
+    # 攻撃力、防御力計算
+    weapon = user_equips[attacker_id]["weapon"]
+    armor = user_equips[target_id]["armor"]
+
+    attack_min, attack_max = WEAPONS.get(weapon, {"attack": (5, 10)}).get("attack", (5, 10))
+    defense = WEAPONS.get(armor, {"defense": 0}).get("defense", 0)
+
+    damage = random.randint(attack_min, attack_max) - defense
+    damage = max(1, damage)  # 最低1ダメージ
+
+    player_states[target_id]["hp"] -= damage
+
+    if player_states[target_id]["hp"] <= 0:
+        player_states[target_id]["alive"] = False
+        player_states[target_id]["hp"] = 0
+        await ctx.send(f"💥 {ctx.author.display_name} の攻撃！ {target.display_name} に {damage} ダメージ！\n💀 {target.display_name} は倒れました！")
+    else:
+        await ctx.send(f"💥 {ctx.author.display_name} の攻撃！ {target.display_name} に {damage} ダメージ！ 残りHP: {player_states[target_id]['hp']}")
+
+    save_data()
+
+@bot.command()
+async def back(ctx):
+    user_id = ctx.author.id
+    if player_states[user_id]["alive"]:
+        await ctx.send("❗ あなたはまだ生きています。")
+        return
+    player_states[user_id]["hp"] = player_states[user_id]["max_hp"]
+    player_states[user_id]["alive"] = True
+    await ctx.send(f"🌟 {ctx.author.display_name} は復活しました！ HPが全回復しました。")
+    save_data()
+
+@bot.command()
+async def build(ctx, *, building_name: str):
+    user_id = ctx.author.id
+    building_name = building_name.strip()
+
+    if building_name not in BUILDING_REWARDS:
+        await ctx.send(f"❌ {building_name} は登録された建築物ではありません。")
+        return
+
+    # 既に建築済みかチェック
+    if building_name in built_structures[user_id]:
+        await ctx.send(f"⚠️ {building_name} はすでに建てています。")
+        return
+
+    built_structures[user_id].add(building_name)
+
+    # 報酬付与
+    rewards = BUILDING_REWARDS[building_name]
+    for item, qty in rewards.items():
+        for _ in range(qty):
+            user_inventories[user_id].append(item)
+
+    await ctx.send(f"🏗️ {ctx.author.display_name} は {building_name} を建てました！報酬として {', '.join(f'{k} x{v}' for k,v in rewards.items())} をゲット！")
+    save_data()
+
+@bot.command()
+async def use_potion(ctx):
+    user_id = ctx.author.id
+    items = user_inventories[user_id]
+
+    if "回復薬" not in items:
+        await ctx.send("❌ 回復薬を持っていません。")
+        return
+
+    if not player_states[user_id]["alive"]:
+        await ctx.send("❌ 死んでいる間は回復薬を使えません。")
+        return
+
+    # HP回復量
+    heal_amount = 30
+    player_states[user_id]["hp"] = min(player_states[user_id]["max_hp"], player_states[user_id]["hp"] + heal_amount)
+    items.remove("回復薬")
+
+    await ctx.send(f"💊 {ctx.author.display_name} は回復薬を使い、HPが {heal_amount} 回復しました。現在HP: {player_states[user_id]['hp']}")
+    save_data()
+
+# --- モード設定と発言変換の例 ---
+
+# 口調変換の簡易辞書（例）
+MODE_PHRASES = {
+    "猫": lambda s: s + "にゃん♪",
+    "お嬢様": lambda s: "わたくし、" + s + "でございますわ。",
+    "中二病": lambda s: s.replace("です", "なのだ").replace("ます", "なのだ"),
+    "執事": lambda s: "かしこまりました。" + s,
+    "幼女": lambda s: s.replace("です", "だよ").replace("ます", "だよ"),
+    "ロボ": lambda s: s.replace("です", "デス").replace("ます", "デス"),
+    "さくらみこ": lambda s: s + "みこ～",
+}
+
+@bot.command()
+async def mode(ctx, *, mode_name: str):
+    user_id = ctx.author.id
+    mode_name = mode_name.strip()
+    if mode_name not in MODE_PHRASES:
+        await ctx.send(f"❌ {mode_name} は対応しているモード名ではありません。")
+        return
+    user_modes[user_id] = mode_name
+    await ctx.send(f"🎭 {ctx.author.display_name} の口調モードを「{mode_name}」に設定しました。")
+
+@bot.event
+async def on_message(message):
+    if message.author.bot:
+        return
+
+    # 口調モード適用
+    if message.channel.id == SOURCE_CHANNEL_ID:
+        user_id = message.author.id
+        mode_name = user_modes.get(user_id)
+        if mode_name:
+            phrase_func = MODE_PHRASES.get(mode_name)
+            if phrase_func:
+                transformed = phrase_func(message.content)
+                dest_channel = bot.get_channel(DEST_CHANNEL_ID)
+                if dest_channel:
+                    await dest_channel.send(f"{message.author.display_name} さんの発言（{mode_name}モード）:\n{transformed}")
+                await bot.process_commands(message)
+                return
+
+    await bot.process_commands(message)
+
+load_data()
+bot.run(TOKEN)

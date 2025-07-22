@@ -10,6 +10,8 @@ from collections import defaultdict
 from dotenv import load_dotenv
 import discord
 from discord.ext import commands
+from discord.ui import View, Button
+from discord import Embed
 
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
@@ -20,6 +22,35 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
+
+class PaginatorView(View):
+    def __init__(self, pages, author_id):
+        super().__init__(timeout=60)
+        self.pages = pages
+        self.current_page = 0
+        self.author_id = author_id
+
+    async def update_message(self, interaction):
+        embed = self.pages[self.current_page]
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="⬅ 前へ", style=discord.ButtonStyle.primary)
+    async def previous(self, interaction: discord.Interaction, button: Button):
+        if interaction.user.id != self.author_id:
+            await interaction.response.send_message("あなたのボタンではありません。", ephemeral=True)
+            return
+        if self.current_page > 0:
+            self.current_page -= 1
+            await self.update_message(interaction)
+
+    @discord.ui.button(label="次へ ➡", style=discord.ButtonStyle.primary)
+    async def next(self, interaction: discord.Interaction, button: Button):
+        if interaction.user.id != self.author_id:
+            await interaction.response.send_message("あなたのボタンではありません。", ephemeral=True)
+            return
+        if self.current_page < len(self.pages) - 1:
+            self.current_page += 1
+            await self.update_message(interaction)
 
 DATA_FILE = "player_data.json"
 player_data = defaultdict(lambda: {
@@ -148,16 +179,35 @@ async def mine(ctx):
 @bot.command()
 async def inventory(ctx):
     user_id = str(ctx.author.id)
+
     if user_id not in player_data or not player_data[user_id]["inventory"]:
         await ctx.send("あなたのインベントリは空です。まずは `!mine` でアイテムを集めましょう！")
         return
+
     inv = player_data[user_id]["inventory"]
-    # アイテム数集計
+
+    # アイテム数を集計して [(item, count), ...] のリストに
     counted = {}
     for item in inv:
         counted[item] = counted.get(item, 0) + 1
-    inv_text = ", ".join(f"{item} x{count}" for item, count in counted.items())
-    await ctx.send(f"{ctx.author.display_name} のインベントリ: {inv_text}")
+    counted_items = [f"{item} x{count}" for item, count in counted.items()]
+
+    # ページに分割（8件ずつ）
+    items_per_page = 8
+    pages = []
+    for i in range(0, len(counted_items), items_per_page):
+        chunk = counted_items[i:i + items_per_page]
+        embed = discord.Embed(
+            title=f"{ctx.author.display_name} のインベントリ 🧳",
+            description="\n".join(chunk),
+            color=discord.Color.green()
+        )
+        embed.set_footer(text=f"ページ {i // items_per_page + 1}/{(len(counted_items) + items_per_page - 1) // items_per_page}")
+        pages.append(embed)
+
+    view = PaginatorView(pages, ctx.author.id)
+    await ctx.send(embed=pages[0], view=view)
+
 
 
 @bot.command()
@@ -329,6 +379,9 @@ async def mode(interaction: discord.Interaction, mode: str):
 async def on_message(message):
     if message.author.bot:
         return
+
+    await bot.process_commands(message)  # 先にコマンドを処理
+
     user_id = str(message.author.id)
     if user_id in player_data:
         mode = player_data[user_id].get("mode", "平和")
@@ -336,15 +389,12 @@ async def on_message(message):
         if func:
             new_content = func(message.content)
             if new_content != message.content:
-                # 発言を書き換えるために、一旦メッセージを削除してモード変換後に再送信
                 try:
                     await message.delete()
                     await message.channel.send(f"{message.author.display_name} > {new_content}")
-                    return
                 except discord.Forbidden:
-                    # 削除権限なければ何もしない
                     pass
-    await bot.process_commands(message)
+
 
 @bot.event
 async def on_ready():

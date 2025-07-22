@@ -79,18 +79,25 @@ MODE_PHRASES = {
 
 LEVEL_THRESHOLDS = [0, 10, 25, 45, 70, 100, 140, 185, 235, 290]
 
-def save_data():
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
-        json.dump(player_data, f, ensure_ascii=False, indent=2)
+DATA_FILE = "game_data.json"
 
 def load_data():
     if not os.path.exists(DATA_FILE):
         return
     with open(DATA_FILE, "r", encoding="utf-8") as f:
-        loaded = json.load(f)
-        for k, v in loaded.items():
-            player_data[str(k)] = v
+        data = json.load(f)
+        for user_id, inventory in data.get("user_inventories", {}).items():
+            player_data[user_id]["inventory"] = inventory
+        for user_id, mode in data.get("user_modes", {}).items():
+            player_data[user_id]["mode"] = mode
 
+def save_data():
+    data = {
+        "user_inventories": {uid: pdata["inventory"] for uid, pdata in player_data.items()},
+        "user_modes": {uid: pdata.get("mode") for uid, pdata in player_data.items()}
+    }
+    with open(DATA_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
 @bot.command()
 async def mine(ctx):

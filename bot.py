@@ -1,4 +1,5 @@
 import os
+import json
 from dotenv import load_dotenv
 import discord
 from discord.ext import commands
@@ -16,13 +17,14 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True  # attack対象指定に必要
 
-# helpコマンドは自作するのでNoneに設定
 bot = commands.Bot(command_prefix='!', intents=intents, help_command=None)
+
+DATA_FILE = "game_data.json"
 
 user_modes = {}
 user_inventories = defaultdict(list)
 player_states = defaultdict(lambda: {"hp": 100, "max_hp": 100, "alive": True})
-built_structures = defaultdict(set)  # user_id: set of structure names
+built_structures = defaultdict(set)
 
 BUILDING_REWARDS = {
     "小屋": {"ゴールド": 2},
@@ -31,6 +33,34 @@ BUILDING_REWARDS = {
     "農場": {"ゴールド": 3},
     "砦": {"ダイヤモンド": 1, "エメラルド": 1},
 }
+
+def save_data():
+    data = {
+        "user_modes": user_modes,
+        "user_inventories": dict(user_inventories),
+        "player_states": dict(player_states),
+        "built_structures": {k: list(v) for k, v in built_structures.items()},
+    }
+    with open(DATA_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+def load_data():
+    if not os.path.exists(DATA_FILE):
+        return
+    with open(DATA_FILE, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    user_modes.clear()
+    for k, v in data.get("user_modes", {}).items():
+        user_modes[int(k)] = v
+    user_inventories.clear()
+    for k, v in data.get("user_inventories", {}).items():
+        user_inventories[int(k)] = v
+    player_states.clear()
+    for k, v in data.get("player_states", {}).items():
+        player_states[int(k)] = v
+    built_structures.clear()
+    for k, v in data.get("built_structures", {}).items():
+        built_structures[int(k)] = set(v)
 
 # ---------- 文字変換 ----------
 def convert_to_style(text, mode):
@@ -53,10 +83,9 @@ def convert_to_style(text, mode):
     else:
         return text
 
-# ---------- イベント ----------
-
 @bot.event
 async def on_ready():
+    load_data()
     print(f"✅ Bot ready as {bot.user}")
 
 @bot.event
@@ -81,8 +110,6 @@ async def on_message(message):
         converted = convert_to_style(message.content, mode) if mode else message.content
         await dest_channel.send(converted)
 
-# ---------- コマンド ----------
-
 @bot.command()
 async def mode(ctx, *, mode_name=None):
     if not mode_name:
@@ -90,9 +117,11 @@ async def mode(ctx, *, mode_name=None):
         return
     if mode_name in ["off", "reset", "なし"]:
         user_modes.pop(ctx.author.id, None)
+        save_data()
         await ctx.send("モードをリセットしたにゃん。")
     else:
         user_modes[ctx.author.id] = mode_name
+        save_data()
         await ctx.send(f"{ctx.author.display_name} のモードを `{mode_name}` に設定したにゃん！")
 
 @bot.command()
@@ -102,6 +131,7 @@ async def mine(ctx):
 
     if item != '何も見つからなかった':
         user_inventories[ctx.author.id].append(item)
+        save_data()
         await ctx.send(f"⛏️ {ctx.author.display_name} は {item} を採掘した！")
     else:
         await ctx.send(f"😢 {ctx.author.display_name} は何も見つからなかった…")
@@ -139,8 +169,10 @@ async def attack(ctx, target: discord.Member):
     if target_state["hp"] <= 0:
         target_state["hp"] = 0
         target_state["alive"] = False
+        save_data()
         await ctx.send(f"{ctx.author.display_name} は {target.display_name} に致命的な一撃！💥 {target.display_name} は倒れた…")
     else:
+        save_data()
         await ctx.send(f"{ctx.author.display_name} が {target.display_name} に {damage} ダメージを与えた！ 残りHP: {target_state['hp']}")
 
 @bot.command()
@@ -153,6 +185,7 @@ async def back(ctx):
     else:
         state["hp"] = state["max_hp"] // 2
         state["alive"] = True
+        save_data()
         await ctx.send(f"🧬 {ctx.author.display_name} が `!back` で復活！ HP: {state['hp']}")
 
 @bot.command()
@@ -174,11 +207,11 @@ async def build(ctx, *, structure_name):
         inventory.extend([item] * amount)
 
     built_structures[user_id].add(structure_name)
+    save_data()
 
     reward_text = " / ".join([f"{item}×{qty}" for item, qty in rewards.items()])
     await ctx.send(f"🏗️ {ctx.author.display_name} は「{structure_name}」を完成！\n💰 報酬：{reward_text}")
 
-# ---------- 回復薬使用コマンド ----------
 @bot.command()
 async def use_potion(ctx):
     inventory = user_inventories[ctx.author.id]
@@ -196,6 +229,7 @@ async def use_potion(ctx):
     state["hp"] = min(state["hp"] + heal_amount, state["max_hp"])
 
     inventory.remove("回復薬")
+    save_data()
 
     await ctx.send(f"💊 {ctx.author.display_name} は回復薬を使ってHPが {old_hp} → {state['hp']} に回復した！")
 

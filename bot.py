@@ -142,7 +142,8 @@ async def mode(ctx, *, mode_name=None):
 
 @bot.command()
 async def mine(ctx):
-    # 鉱石系・武器系（既存）
+    drops = [
+        # 鉱石系・武器系（既存）
         '石', '石炭', '鉄', '金', 'ダイヤモンド', 'エメラルド', '回復薬',
         '剣', '盾', '弓矢', 'TNT', '呪いの魔法', 'トライデント', 'メイス',
 
@@ -158,7 +159,8 @@ async def mine(ctx):
 
         # ハズレ
         '何も見つからなかった'
-        
+    ]
+
     item = random.choice(drops)
 
     if item != '何も見つからなかった':
@@ -167,6 +169,7 @@ async def mine(ctx):
         await ctx.send(f"⛏️ {ctx.author.display_name} は {item} を採掘した！")
     else:
         await ctx.send(f"😢 {ctx.author.display_name} は何も見つからなかった…")
+
 
 @bot.command()
 async def inventory(ctx):

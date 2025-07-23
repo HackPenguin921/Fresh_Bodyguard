@@ -12,6 +12,7 @@ import discord
 from discord.ext import commands
 from discord.ui import View, Button
 from discord import Embed
+import asyncio
 
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
@@ -138,18 +139,16 @@ def load_data():
         return
     with open(DATA_FILE, "r", encoding="utf-8") as f:
         data = json.load(f)
-        for user_id, inventory in data.get("user_inventories", {}).items():
-            player_data[user_id]["inventory"] = inventory
-        for user_id, mode in data.get("user_modes", {}).items():
-            player_data[user_id]["mode"] = mode
+        for user_id, pdata in data.get("player_data", {}).items():
+            player_data[user_id] = pdata
 
 def save_data():
     data = {
-        "user_inventories": {uid: pdata["inventory"] for uid, pdata in player_data.items()},
-        "user_modes": {uid: pdata.get("mode") for uid, pdata in player_data.items()}
+        "player_data": dict(player_data)
     }
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+
 
 @bot.command()
 async def mine(ctx):
@@ -190,9 +189,10 @@ async def mine(ctx):
     # レベルアップ判定
     current_level = player_data[user_id]["level"]
     while player_data[user_id]["exp"] >= 100:
-        player_data[user_id]["exp"] -= 100
-        player_data[user_id]["level"] += 1
-        await ctx.send(f"🎉 {ctx.author.display_name} さん、レベルアップ！ 現在レベル {player_data[user_id]['level']} です！")
+    player_data[user_id]["exp"] -= 100
+    player_data[user_id]["level"] += 1
+    await ctx.send(f"🎉 {ctx.author.display_name} さん、レベルアップ！ 現在レベル {player_data[user_id]['level']} です！")
+
 
     if current_level != player_data[user_id]["level"]:
         player_data[user_id]["level"] = current_level
@@ -246,12 +246,14 @@ async def trade(ctx, target: discord.Member, *, item_name: str):
     await ctx.send(f"{target.mention} さん、{ctx.author.display_name} から `{item_name}` を受け取りますか？（`yes` と送信）")
 
     try:
-        msg = await bot.wait_for("message", timeout=15.0, check=check)
-        player_data[sender_id]["inventory"].remove(item_name)
-        player_data[receiver_id]["inventory"].append(item_name)
-        await ctx.send(f"✅ トレード成功！{ctx.author.display_name} → {target.display_name} に `{item_name}` を渡しました。")
-    except:
-        await ctx.send("⏳ 時間切れか拒否されました。トレードはキャンセルされました。")
+    msg = await bot.wait_for("message", timeout=15.0, check=check)
+    player_data[sender_id]["inventory"].remove(item_name)
+    player_data[receiver_id]["inventory"].append(item_name)
+    await ctx.send(f"✅ トレード成功！{ctx.author.display_name} → {target.display_name} に `{item_name}` を渡しました。")
+    except asyncio.TimeoutError:
+    await ctx.send("⏳ 時間切れです。トレードはキャンセルされました。")
+    except Exception as e:
+    await ctx.send(f"トレード中にエラーが発生しました: {e}")
 
 duel_sessions = {}  # {channel_id: {"players": [user1, user2], "turn": 0 or 1, "hp": {user1: int, user2: int}}}
 
@@ -284,7 +286,7 @@ async def duel(ctx, target: discord.Member):
                    f"{ctx.author.display_name} のターンです。`!attack` で攻撃！")
 
 @bot.command()
-async def attack(ctx):
+async def battle(ctx):
     if ctx.channel.id not in duel_sessions:
         await ctx.send("決闘は進行していません。")
         return
@@ -351,9 +353,17 @@ def ensure_player_defaults(user_id):
         "mode": "平和",
         "alive": True,
         "structures": [],
-        "gold": 100,  # 新規追加
+        "gold": 100,
+        "pet": None,
     }
-    # 省略
+
+    if user_id not in player_data:
+        player_data[user_id] = defaults.copy()
+    else:
+        for key, value in defaults.items():
+            if key not in player_data[user_id]:
+                player_data[user_id][key] = value
+
 
 @bot.command()
 async def shop(ctx):
@@ -583,7 +593,8 @@ async def golem(ctx):
         "・`!inventory`：インベントリを確認します。🎒\n"
         "・`!level`：レベルと経験値を表示。⭐\n"
         "・`!equip <アイテム名>`：武器や盾を装備。🗡️🛡️\n"
-        "・`!attack @ユーザー`：他プレイヤーに攻撃！⚔️\n"
+        "・`!attack @ユーザー`：自由に他プレイヤーを攻撃できます。\n"
+        "・`!duel @ユーザー` + `!battle`：ターン制の決闘モードでPvP対戦が楽しめます。\n"
         "・`!use_potion`：回復薬でHPを回復。💊\n"
         "・`!build <建物名>`：建物を建てて報酬ゲット！🏰\n"
         "・`/mode <モード名>`：発言モードを変更（猫・執事など）。😺🤵\n"

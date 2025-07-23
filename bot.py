@@ -241,16 +241,14 @@ async def trade(ctx, target: discord.Member, *, item_name: str):
     await ctx.send(f"{target.mention} さん、{ctx.author.display_name} から `{item_name}` を受け取りますか？（`yes` と送信）")
 
     try:
-    msg = await bot.wait_for("message", timeout=15.0, check=check)
-    player_data[sender_id]["inventory"].remove(item_name)
-    player_data[receiver_id]["inventory"].append(item_name)
-    await ctx.send(f"✅ トレード成功！{ctx.author.display_name} → {target.display_name} に `{item_name}` を渡しました。")
+        msg = await bot.wait_for("message", timeout=15.0, check=check)
+        player_data[sender_id]["inventory"].remove(item_name)
+        player_data[receiver_id]["inventory"].append(item_name)
+        await ctx.send(f"✅ トレード成功！{ctx.author.display_name} → {target.display_name} に `{item_name}` を渡しました。")
     except asyncio.TimeoutError:
-    await ctx.send("⏳ 時間切れです。トレードはキャンセルされました。")
+        await ctx.send("⏳ 時間切れです。トレードはキャンセルされました。")
     except Exception as e:
-    await ctx.send(f"トレード中にエラーが発生しました: {e}")
-
-duel_sessions = {}  # {channel_id: {"players": [user1, user2], "turn": 0 or 1, "hp": {user1: int, user2: int}}}
+        await ctx.send(f"トレード中にエラーが発生しました: {e}")
 
 @bot.command()
 async def duel(ctx, target: discord.Member):

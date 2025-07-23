@@ -13,6 +13,9 @@ from discord.ext import commands
 from discord.ui import View, Button
 from discord import Embed
 import asyncio
+from datetime import datetime
+import pytz
+
 
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
@@ -209,6 +212,44 @@ async def spin(ctx):
         message += " 何も得られませんでした…"
 
     await ctx.send(f"{ctx.author.display_name} のルーレット結果：{message}")
+
+    @bot.command()
+async def time(ctx):
+    tz = pytz.timezone('Asia/Tokyo')
+    now = datetime.now(tz)
+    hour = now.hour
+
+    if 5 <= hour < 10:
+        greetings = [
+            "おはようございます！今日もがんばろう！",
+            "おはよう！素敵な一日を！",
+            "朝の光が気持ちいいね！",
+            "早起きは三文の得だよ！"
+        ]
+    elif 10 <= hour < 17:
+        greetings = [
+            "こんにちは！調子はどう？",
+            "良い午後を過ごしてね！",
+            "今日も元気にいこう！",
+            "午後もファイト！"
+        ]
+    elif 17 <= hour < 21:
+        greetings = [
+            "こんばんは！一日お疲れさま！",
+            "夕方だね。ゆっくり休んでね。",
+            "夜も元気に過ごそう！",
+            "そろそろリラックスタイムだね。"
+        ]
+    else:
+        greetings = [
+            "もう遅いけどお疲れさま！",
+            "夜更かしはほどほどにね。",
+            "おやすみ前のひとときを大切に。",
+            "ぐっすり眠って明日に備えよう！"
+        ]
+
+    greeting = random.choice(greetings)
+    await ctx.send(f"{greeting}（現在の日本時間：{now.strftime('%Y-%m-%d %H:%M:%S')}）")
 
 @bot.command()
 async def trade(ctx, target: discord.Member, *, item_name: str):
@@ -747,6 +788,8 @@ async def golem(ctx):
         "・`!trade @ユーザー <自分のアイテム> <相手のアイテム>`：アイテム交換機能（準備中）🔄\n"
         "・`!spin`：ルーレットで運試し！🎰\n\n"
         "・`!story`：ストーリー作成できるよ！\n\n"
+        "・`!register`：プレイヤー登録できるよ！\n\n"
+        "・`!time`：現在の時間が分かるよ!\n\n"
         "ゲームの冒険を存分に楽しんでくださいね！"
     )
     await ctx.send(help_text)

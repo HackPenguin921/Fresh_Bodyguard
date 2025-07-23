@@ -155,7 +155,6 @@ async def mine(ctx):
     user_id = str(ctx.author.id)
     ensure_player_defaults(user_id)
 
-    # 採掘アイテムリストをレアリティ混合で作成（重み付け）
     weighted_items = (
         RARITY["common"] * 50 +
         RARITY["uncommon"] * 30 +
@@ -166,17 +165,19 @@ async def mine(ctx):
     found_item = random.choice(weighted_items)
     player_data[user_id]["inventory"].append(found_item)
 
-    # 経験値獲得
     gained_xp = random.randint(1, 5)
     player_data[user_id]["exp"] += gained_xp
 
-    # レベルアップ判定
     while player_data[user_id]["exp"] >= 100:
         player_data[user_id]["exp"] -= 100
         player_data[user_id]["level"] += 1
         await ctx.send(f"🎉 {ctx.author.display_name} さん、レベルアップ！ 現在レベル {player_data[user_id]['level']} です！")
 
+    # 変更を保存
+    save_data()
+
     await ctx.send(f"{ctx.author.display_name} は {found_item} を採掘しました！（経験値 +{gained_xp}）")
+
 
 
 @bot.command()
@@ -227,11 +228,16 @@ async def trade(ctx, target: discord.Member, *, item_name: str):
         msg = await bot.wait_for("message", timeout=15.0, check=check)
         player_data[sender_id]["inventory"].remove(item_name)
         player_data[receiver_id]["inventory"].append(item_name)
+
+        # ここで保存！
+        save_data()
+
         await ctx.send(f"✅ トレード成功！{ctx.author.display_name} → {target.display_name} に `{item_name}` を渡しました。")
     except asyncio.TimeoutError:
         await ctx.send("⏳ 時間切れです。トレードはキャンセルされました。")
     except Exception as e:
         await ctx.send(f"トレード中にエラーが発生しました: {e}")
+
 
 @bot.command()
 async def duel(ctx, target: discord.Member):
@@ -368,7 +374,11 @@ async def buy(ctx, *, item_name: str):
     player_data[user_id]["gold"] -= price
     player_data[user_id]["inventory"].append(item_name)
 
+    # ここで保存！
+    save_data()
+
     await ctx.send(f"{ctx.author.display_name} は {item_name} を {price} ゴールドで購入しました！ 所持ゴールド: {player_data[user_id]['gold']}")
+
 
 QUESTS = [
     {"desc": "森の中の魔物退治", "exp": 20, "reward": "鉄"},
@@ -402,18 +412,28 @@ async def pet(ctx):
 
     pet = player_data[user_id].get("pet")
     if not pet:
-        # 新規ペット作成
         player_data[user_id]["pet"] = {"name": "ゴーレム", "level": 1, "exp": 0}
+
+        # ここで保存！
+        save_data()
+
         await ctx.send(f"{ctx.author.display_name} に新しいペット『ゴーレム』が仲間になりました！")
     else:
-        # レベルアップ判定（経験値がたまったら）
         pet["exp"] += 10
         if pet["exp"] >= 100:
             pet["level"] += 1
             pet["exp"] -= 100
+
+            # ここで保存！
+            save_data()
+
             await ctx.send(f"ペット『{pet['name']}』がレベルアップ！現在レベル {pet['level']}！")
         else:
+            # ここで保存（expだけ増えたので）
+            save_data()
+
             await ctx.send(f"ペット『{pet['name']}』は経験値を {pet['exp']}/100 ためました。")
+
 
 
 @bot.command()
@@ -506,12 +526,10 @@ async def attack(ctx, target: discord.Member = None):
         await ctx.send(f"{target.display_name} さんは既に倒れています。")
         return
 
-    # 攻撃力計算
     weapon = attacker.get("weapon", "素手")
     attack_range = WEAPONS.get(weapon, WEAPONS["素手"])["attack"]
     attack_value = random.randint(*attack_range)
 
-    # 防御力計算
     armor_name = defender.get("armor")
     defense_value = 0
     if armor_name and armor_name in WEAPONS:
@@ -524,8 +542,17 @@ async def attack(ctx, target: discord.Member = None):
 
     if defender["hp"] <= 0:
         defender["alive"] = False
+
+        # ここで保存！
+        save_data()
+
         msg += f"\n💀 {target.display_name} は倒れました！"
+    else:
+        # ダメージだけ変わった場合も保存
+        save_data()
+
     await ctx.send(msg)
+
 
 
 @bot.command()
@@ -599,7 +626,12 @@ async def use_potion(ctx):
         return
     player_data[user_id]["potions"] = potions - 1
     player_data[user_id]["hp"] = min(player_data[user_id].get("max_hp", 100), player_data[user_id].get("hp", 100) + 50)
+
+    # ここで保存！
+    save_data()
+
     await ctx.send(f"{ctx.author.display_name} は回復薬を使いHPを回復しました！（現在HP: {player_data[user_id]['hp']}）")
+
 
 
 @bot.tree.command(name="mode", description="発言モードを変更します")

@@ -188,7 +188,6 @@ async def spin(ctx):
     user_id = str(ctx.author.id)
     ensure_player_defaults(user_id)
 
-    # 抽選テーブル
     wheel = [
         ("🎉 レアアイテム獲得！", "ダイヤモンド"),
         ("😎 ゴールド x5！", "ゴールド", 5),
@@ -199,9 +198,8 @@ async def spin(ctx):
     ]
 
     result = random.choice(wheel)
-
-    # 報酬処理
     message = result[0]
+
     if result[1]:
         item = result[1]
         count = result[2] if len(result) > 2 else 1
@@ -213,8 +211,12 @@ async def spin(ctx):
 
     await ctx.send(f"{ctx.author.display_name} のルーレット結果：{message}")
 
-    @bot.command()
+
+
+@bot.command()
 async def clock(ctx):
+    import pytz
+    from datetime import datetime
     tz = pytz.timezone('Asia/Tokyo')
     now = datetime.now(tz)
     hour = now.hour
@@ -251,6 +253,8 @@ async def clock(ctx):
     greeting = random.choice(greetings)
     await ctx.send(f"{greeting}（現在の日本時間：{now.strftime('%Y-%m-%d %H:%M:%S')}）")
 
+
+
 @bot.command()
 async def trade(ctx, target: discord.Member, *, item_name: str):
     sender_id = str(ctx.author.id)
@@ -270,7 +274,6 @@ async def trade(ctx, target: discord.Member, *, item_name: str):
         player_data[sender_id]["inventory"].remove(item_name)
         player_data[receiver_id]["inventory"].append(item_name)
 
-        # ここで保存！
         save_data()
 
         await ctx.send(f"✅ トレード成功！{ctx.author.display_name} → {target.display_name} に `{item_name}` を渡しました。")
@@ -278,6 +281,7 @@ async def trade(ctx, target: discord.Member, *, item_name: str):
         await ctx.send("⏳ 時間切れです。トレードはキャンセルされました。")
     except Exception as e:
         await ctx.send(f"トレード中にエラーが発生しました: {e}")
+
 
 
 @bot.command()

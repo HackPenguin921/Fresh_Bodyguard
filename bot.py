@@ -184,21 +184,16 @@ async def mine(ctx):
 
     # 経験値獲得
     gained_xp = random.randint(1, 5)
-    player_data[user_id]["exp"] += gained_xp
+player_data[user_id]["exp"] += gained_xp
 
-    # レベルアップ判定
-    current_level = player_data[user_id]["level"]
-    while player_data[user_id]["exp"] >= 100:
+# レベルアップ判定
+current_level = player_data[user_id]["level"]
+while player_data[user_id]["exp"] >= 100:
     player_data[user_id]["exp"] -= 100
     player_data[user_id]["level"] += 1
     await ctx.send(f"🎉 {ctx.author.display_name} さん、レベルアップ！ 現在レベル {player_data[user_id]['level']} です！")
 
-
-    if current_level != player_data[user_id]["level"]:
-        player_data[user_id]["level"] = current_level
-        await ctx.send(f"🎉 {ctx.author.display_name} さん、レベルアップ！ 現在レベル {current_level} です！")
-
-    await ctx.send(f"{ctx.author.display_name} は {found_item} を採掘しました！（経験値 +{gained_xp}）")
+await ctx.send(f"{ctx.author.display_name} は {found_item} を採掘しました！（経験値 +{gained_xp}）")
 
 
 @bot.command()

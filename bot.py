@@ -545,11 +545,10 @@ def find_user_id_by_name(name: str):
 # 🎮 マイクラ風ストーリーゲーム
 
 
-import random
-
 @bot.command()
 async def story(ctx, who: str = None):
-    players = ["れむらむ", "ゆうた", "こもねこ", "ばーど", "ふるねこ", "ぎょふ", "ぷろわん", "まめちー", "うに", "ノックス", "わたあめ", "みこ"]
+    players = ["れむらむ", "ゆうた", "こもねこ", "ばーど", "ふるねこ", "ぎょふ",
+               "ぷろわん", "まめちー", "うに", "ノックス", "わたあめ", "みこ"]
 
     if not who:
         if not player_data:
@@ -557,13 +556,9 @@ async def story(ctx, who: str = None):
             return
         who = random.choice(list(player_data.values()))["name"]
 
-    if who not in players:
-        await ctx.send(f"プレイヤー「{who}」は存在しません。")
-        return
-
+    # プレイヤー絡みの対象は登録済みの中から who を除く
     others = [p for p in players if p != who]
 
-    # プレイヤー絡みのアクション（whoとtarget）
     player_actions = [
         lambda w, t: f"{w}が{t}を殴った",
         lambda w, t: f"{w}が{t}に爆笑ジョークを言った",
@@ -577,7 +572,6 @@ async def story(ctx, who: str = None):
         lambda w, t: f"{w}が{t}のベッドを隠した"
     ]
 
-    # プレイヤー絡み無しの単独アクション
     solo_actions = [
         "クリーパーに話しかけた", "TNTを設置した", "村人を叩いた", "ゾンビピッグマンを挑発した",
         "ダイヤを拾った", "ネコを手懐けた", "ベッドを壊した", "ポーションを全部飲んだ",
@@ -622,15 +616,15 @@ async def story(ctx, who: str = None):
     place = random.choice(places)
     result = random.choice(results)
 
-    # actionsからランダムに「プレイヤー絡み」か「単独」か決める
+    # ランダムにプレイヤー絡み or 単独行動を決める
     if random.choice([True, False]) and others:
-        # プレイヤー絡み行動
+        target = random.choice(others)
         action = random.choice(player_actions)(who, target)
     else:
-        # 単独行動
         action = random.choice(solo_actions)
 
     await ctx.send(f"🎮 **{who}** が **{place}** で **{action}** から、**{result}**！")
+
 
 
 

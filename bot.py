@@ -15,6 +15,8 @@ from discord import Embed
 import asyncio
 from datetime import datetime
 import pytz
+import aiohttp
+
 
 
 load_dotenv()
@@ -153,6 +155,104 @@ def save_data():
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
+async def geocode(city_name):
+    url = "https://nominatim.openstreetmap.org/search"
+    params = {
+        "q": city_name,
+        "format": "json",
+        "limit": 1,
+    }
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, params=params) as resp:
+            if resp.status != 200:
+                return None
+            data = await resp.json()
+            if len(data) == 0:
+                return None
+            lat = data[0]["lat"]
+            lon = data[0]["lon"]
+            return float(lat), float(lon)
+
+@bot.command()
+async def tenki(ctx, *, city: str = None):
+    if city is None:
+        await ctx.send(f"{ctx.author.mention} どの都市の天気を知りたいですか？ 返信してください。")
+
+        def check(m):
+            return m.author == ctx.author and m.channel == ctx.channel
+
+        try:
+            msg = await bot.wait_for("message", timeout=30.0, check=check)
+            city = msg.content.strip()
+        except asyncio.TimeoutError:
+            await ctx.send("時間切れです。コマンドをキャンセルしました。")
+            return
+
+    coords = await geocode(city)
+    if not coords:
+        await ctx.send(f"{city} の場所が見つかりませんでした。")
+        return
+
+    lat, lon = coords
+    weather_url = "https://api.open-meteo.com/v1/forecast"
+    params = {
+        "latitude": lat,
+        "longitude": lon,
+        "current_weather": "true",
+        "timezone": "Asia/Tokyo",
+    }
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(weather_url, params=params) as resp:
+            if resp.status != 200:
+                await ctx.send("天気情報が取得できませんでした。")
+                return
+            weather_data = await resp.json()
+            current = weather_data.get("current_weather", {})
+            if not current:
+                await ctx.send("現在の天気情報がありません。")
+                return
+
+            temp = current.get("temperature")
+            windspeed = current.get("windspeed")
+            weather_code = current.get("weathercode")
+
+            weather_desc = {
+                0: "晴れ",
+                1: "主に晴れ",
+                2: "部分的に曇り",
+                3: "曇り",
+                45: "霧",
+                48: "凍結霧",
+                51: "弱い霧雨",
+                53: "中程度の霧雨",
+                55: "強い霧雨",
+                56: "凍結弱い霧雨",
+                57: "凍結強い霧雨",
+                61: "弱い雨",
+                63: "中程度の雨",
+                65: "強い雨",
+                66: "凍結弱い雨",
+                67: "凍結強い雨",
+                71: "弱い雪",
+                73: "中程度の雪",
+                75: "強い雪",
+                77: "あられ",
+                80: "弱いにわか雨",
+                81: "中程度のにわか雨",
+                82: "強いにわか雨",
+                85: "弱いにわか雪",
+                86: "強いにわか雪",
+                95: "雷雨",
+                96: "弱い雷雨とあられ",
+                99: "強い雷雨とあられ"
+            }
+
+            desc = weather_desc.get(weather_code, "不明な天気")
+
+            await ctx.send(f"**{city}** の現在の天気:\n気温: {temp}°C\n風速: {windspeed} km/h\n天気: {desc}")
+
+            
 @bot.command()
 async def mine(ctx):
     user_id = str(ctx.author.id)

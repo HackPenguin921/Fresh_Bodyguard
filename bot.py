@@ -252,7 +252,7 @@ async def tenki(ctx, *, city: str = None):
 
             await ctx.send(f"**{city}** の現在の天気:\n気温: {temp}°C\n風速: {windspeed} km/h\n天気: {desc}")
 
-            
+
 @bot.command()
 async def mine(ctx):
     user_id = str(ctx.author.id)
@@ -894,6 +894,7 @@ async def golem(ctx):
         "・`!story`：ストーリー作成できるよ！\n\n"
         "・`!register`：プレイヤー登録できるよ！\n\n"
         "・`!clock`：現在の時間が分かるよ!\n\n"
+        "・`!tenki`：現在の天気が分かるよ!\n\n"
         "ゲームの冒険を存分に楽しんでくださいね！"
     )
     await ctx.send(help_text)

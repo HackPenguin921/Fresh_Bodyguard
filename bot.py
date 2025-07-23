@@ -154,22 +154,6 @@ def save_data():
 async def mine(ctx):
     user_id = str(ctx.author.id)
     ensure_player_defaults(user_id)
-    if user_id not in player_data:
-        player_data[user_id] = {
-            "inventory": [],
-            "level": 1,
-            "exp": 0,
-            "hp": 100,
-            "max_hp": 100,
-            "weapon": "素手",
-            "armor": None,
-            "potions": 1,
-            "mode": "平和",
-            "alive": True,
-            "structures": [],
-        }
-    # 以降は player_data[user_id]["exp"] を使う
-
 
     # 採掘アイテムリストをレアリティ混合で作成（重み付け）
     weighted_items = (
@@ -184,14 +168,16 @@ async def mine(ctx):
 
     # 経験値獲得
     gained_xp = random.randint(1, 5)
-player_data[user_id]["exp"] += gained_xp
+    player_data[user_id]["exp"] += gained_xp
 
-while player_data[user_id]["exp"] >= 100:
-    player_data[user_id]["exp"] -= 100
-    player_data[user_id]["level"] += 1
-    await ctx.send(f"🎉 {ctx.author.display_name} さん、レベルアップ！ 現在レベル {player_data[user_id]['level']} です！")
+    # レベルアップ判定
+    while player_data[user_id]["exp"] >= 100:
+        player_data[user_id]["exp"] -= 100
+        player_data[user_id]["level"] += 1
+        await ctx.send(f"🎉 {ctx.author.display_name} さん、レベルアップ！ 現在レベル {player_data[user_id]['level']} です！")
 
-await ctx.send(f"{ctx.author.display_name} は {found_item} を採掘しました！（経験値 +{gained_xp}）")
+    await ctx.send(f"{ctx.author.display_name} は {found_item} を採掘しました！（経験値 +{gained_xp}）")
+
 
 @bot.command()
 async def spin(ctx):

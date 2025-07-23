@@ -153,10 +153,12 @@
         "回復薬",
         "回復薬",
         "盾",
-        "金"
+        "金",
+        "石",
+        "ダイヤモンド"
       ],
       "level": 4,
-      "exp": 15,
+      "exp": 17,
       "hp": 100,
       "max_hp": 100,
       "weapon": "呪いの魔法",
@@ -507,6 +509,23 @@
       ],
       "level": 1,
       "exp": 28,
+      "hp": 100,
+      "max_hp": 100,
+      "weapon": "素手",
+      "armor": null,
+      "potions": 1,
+      "mode": "平和",
+      "alive": true,
+      "structures": [],
+      "gold": 100,
+      "pet": null
+    },
+    "1279557891120169014": {
+      "inventory": [
+        "鉄"
+      ],
+      "level": 1,
+      "exp": 2,
       "hp": 100,
       "max_hp": 100,
       "weapon": "素手",

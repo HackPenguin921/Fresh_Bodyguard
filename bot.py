@@ -545,24 +545,40 @@ def find_user_id_by_name(name: str):
 # 🎮 マイクラ風ストーリーゲーム
 
 
+import random
+
 @bot.command()
 async def story(ctx, who: str = None):
+    players = ["れむらむ", "ゆうた", "こもねこ", "ばーど", "ふるねこ", "ぎょふ", "ぷろわん", "まめちー", "うに", "ノックス", "わたあめ", "みこ"]
+
     if not who:
         if not player_data:
             await ctx.send("プレイヤーが登録されていません。")
             return
         who = random.choice(list(player_data.values()))["name"]
 
-    places = [
-        "ネザー", "エンド", "村", "洞窟", "渓谷", "天空の島", "森林バイオーム", "海底神殿", "廃坑",
-        "ピリジャーの前線基地", "溶岩の海", "雪山", "監獄", "図書館", "要塞", "砂漠の寺院", "キノコ島",
-        "スポナー部屋", "儀式の間", "巨大スライムの巣", "古代都市", "スニッファーの巣", "村の祭壇",
-        "迷子のネザーゲート", "カカシ農園", "天空バーガーショップ", "謎の和室", "レッドストーン銀行",
-        "廃墟のラーメン屋", "ウーパールーパー温泉", "トロッコ高速道路", "虚無空間", "ベッドウォーズの戦場",
-        "深海ファミレス", "異次元のトイレ"
+    if who not in players:
+        await ctx.send(f"プレイヤー「{who}」は存在しません。")
+        return
+
+    others = [p for p in players if p != who]
+
+    # プレイヤー絡みのアクション（whoとtarget）
+    player_actions = [
+        lambda w, t: f"{w}が{t}を殴った",
+        lambda w, t: f"{w}が{t}に爆笑ジョークを言った",
+        lambda w, t: f"{w}が{t}とエンダードラゴンに挑んだ",
+        lambda w, t: f"{w}が{t}のチェストをこっそり開けた",
+        lambda w, t: f"{w}が{t}の家をTNTで爆破した",
+        lambda w, t: f"{w}が{t}にサトウキビを投げつけた",
+        lambda w, t: f"{w}が{t}にマグマダイブを強要した",
+        lambda w, t: f"{w}が{t}とトロッコレースで勝負した",
+        lambda w, t: f"{w}が{t}にラップバトルを挑んだ",
+        lambda w, t: f"{w}が{t}のベッドを隠した"
     ]
 
-    actions = [
+    # プレイヤー絡み無しの単独アクション
+    solo_actions = [
         "クリーパーに話しかけた", "TNTを設置した", "村人を叩いた", "ゾンビピッグマンを挑発した",
         "ダイヤを拾った", "ネコを手懐けた", "ベッドを壊した", "ポーションを全部飲んだ",
         "コマンドブロックを触った", "Witherを召喚した", "ドラゴンに投げキッスした",
@@ -572,6 +588,15 @@ async def story(ctx, who: str = None):
         "ネザーラックを全部舐めた", "エンダーマンにラップバトルを仕掛けた",
         "ゾンビに恋文を渡した", "スポナーで盆踊りした", "豚に乗って競馬を始めた",
         "空腹で建築しながら歌った", "ピストンでジャンプ台を作った", "ディスペンサーに頭を突っ込んだ"
+    ]
+
+    places = [
+        "ネザー", "エンド", "村", "洞窟", "渓谷", "天空の島", "森林バイオーム", "海底神殿", "廃坑",
+        "ピリジャーの前線基地", "溶岩の海", "雪山", "監獄", "図書館", "要塞", "砂漠の寺院", "キノコ島",
+        "スポナー部屋", "儀式の間", "巨大スライムの巣", "古代都市", "スニッファーの巣", "村の祭壇",
+        "迷子のネザーゲート", "カカシ農園", "天空バーガーショップ", "謎の和室", "レッドストーン銀行",
+        "廃墟のラーメン屋", "ウーパールーパー温泉", "トロッコ高速道路", "虚無空間", "ベッドウォーズの戦場",
+        "深海ファミレス", "異次元のトイレ"
     ]
 
     results = [
@@ -595,10 +620,18 @@ async def story(ctx, who: str = None):
     ]
 
     place = random.choice(places)
-    action = random.choice(actions)
     result = random.choice(results)
 
+    # actionsからランダムに「プレイヤー絡み」か「単独」か決める
+    if random.choice([True, False]) and others:
+        # プレイヤー絡み行動
+        action = random.choice(player_actions)(who, target)
+    else:
+        # 単独行動
+        action = random.choice(solo_actions)
+
     await ctx.send(f"🎮 **{who}** が **{place}** で **{action}** から、**{result}**！")
+
 
 
 

@@ -94,7 +94,97 @@ def ensure_player_defaults(user_id):
             if key not in player_data[user_id]:
                 player_data[user_id][key] = value
 
+class TicTacToeButton(Button):
+    def __init__(self, x, y):
+        super().__init__(style=discord.ButtonStyle.secondary, label="\u200b", row=y)
+        self.x = x
+        self.y = y
 
+    async def callback(self, interaction: discord.Interaction):
+        view: TicTacToeCPUView = self.view
+        if interaction.user != view.player:
+            await interaction.response.send_message("これはあなたのゲームではありません！", ephemeral=True)
+            return
+
+        if view.board[self.y][self.x] != "":
+            await interaction.response.send_message("このマスはすでに使われています！", ephemeral=True)
+            return
+
+        # プレイヤーの手
+        self.label = "⭕"
+        self.disabled = True
+        self.style = discord.ButtonStyle.success
+        view.board[self.y][self.x] = "⭕"
+
+        if view.check_winner("⭕"):
+            view.disable_all()
+            await interaction.response.edit_message(content="🎉 あなたの勝ち！", view=view)
+            view.stop()
+            return
+        elif view.is_draw():
+            view.disable_all()
+            await interaction.response.edit_message(content="🤝 引き分け！", view=view)
+            view.stop()
+            return
+
+        await interaction.response.edit_message(content="🤖 CPUの手番...", view=view)
+        await view.cpu_move(interaction)
+
+class TicTacToeCPUView(View):
+    def __init__(self, player):
+        super().__init__(timeout=180)
+        self.player = player
+        self.board = [["" for _ in range(3)] for _ in range(3)]
+
+        for y in range(3):
+            for x in range(3):
+                self.add_item(TicTacToeButton(x, y))
+
+    def disable_all(self):
+        for child in self.children:
+            child.disabled = True
+
+    def check_winner(self, mark):
+        for row in self.board:
+            if all(cell == mark for cell in row):
+                return True
+        for col in range(3):
+            if all(self.board[row][col] == mark for row in range(3)):
+                return True
+        if all(self.board[i][i] == mark for i in range(3)):
+            return True
+        if all(self.board[i][2 - i] == mark for i in range(3)):
+            return True
+        return False
+
+    def is_draw(self):
+        return all(cell != "" for row in self.board for cell in row)
+
+    async def cpu_move(self, interaction: discord.Interaction):
+        empty = [(x, y) for y in range(3) for x in range(3) if self.board[y][x] == ""]
+        if not empty:
+            return
+
+        x, y = random.choice(empty)
+        self.board[y][x] = "❌"
+
+        for child in self.children:
+            if isinstance(child, TicTacToeButton) and child.x == x and child.y == y:
+                child.label = "❌"
+                child.disabled = True
+                child.style = discord.ButtonStyle.danger
+                break
+
+        if self.check_winner("❌"):
+            self.disable_all()
+            await interaction.edit_original_response(content="😱 CPUの勝ち...", view=self)
+            self.stop()
+        elif self.is_draw():
+            self.disable_all()
+            await interaction.edit_original_response(content="🤝 引き分け！", view=self)
+            self.stop()
+        else:
+            await interaction.edit_original_response(content="⭕ あなたの番です！", view=self)
 
 WEAPONS = {
     "素手": {"attack": (5, 10), "defense": 0},
@@ -172,6 +262,7 @@ async def geocode(city_name):
             lat = data[0]["lat"]
             lon = data[0]["lon"]
             return float(lat), float(lon)
+
 
 @bot.command()
 async def tenki(ctx, *, city: str = None):
@@ -281,7 +372,10 @@ async def mine(ctx):
 
     await ctx.send(f"{ctx.author.display_name} は {found_item} を採掘しました！（経験値 +{gained_xp}）")
 
-
+@bot.command(name="marubatu")
+async def marubatu(ctx):
+    view = TicTacToeCPUView(ctx.author)
+    await ctx.send("⭕ あなたの番です！", view=view)
 
 @bot.command()
 async def spin(ctx):
@@ -353,7 +447,22 @@ async def clock(ctx):
     greeting = random.choice(greetings)
     await ctx.send(f"{greeting}（現在の日本時間：{now.strftime('%Y-%m-%d %H:%M:%S')}）")
 
+@bot.event
+async def on_ready():
+    print(f"✅ 起動しました: {bot.user}")
+    channel = bot.get_channel(DEST_CHANNEL_ID)
+    if channel:
+        await channel.send("✅ Botが現在オンラインです！（使用可能）")
 
+@bot.event
+async def on_disconnect():
+    print("⚠️ 切断されました")
+    channel = bot.get_channel(DEST_CHANNEL_ID)
+    if channel:
+        try:
+            await channel.send("⚠️ Botは現在メンテナンスモードです。復旧をお待ちください。")
+        except Exception:
+            pass  # 切断時は送れない場合もあるので例外回避
 
 @bot.command()
 async def trade(ctx, target: discord.Member, *, item_name: str):

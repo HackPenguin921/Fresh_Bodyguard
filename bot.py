@@ -346,6 +346,11 @@ def ensure_player_defaults(user_id):
             if key not in player_data[user_id]:
                 player_data[user_id][key] = value
 
+def find_user_id_by_name(name: str):
+    for uid, pdata in player_data.items():
+        if pdata.get("name") == name:
+            return uid
+    return None
 
 @bot.command()
 async def shop(ctx):
@@ -501,29 +506,103 @@ async def equip(ctx, *, item_name: str):
     else:
         await ctx.send(f"{item_name} は装備できません。武器または盾のみ装備可能です。")
 
+        # 登録時の名前（ニックネーム）を保存
+@bot.command()
+async def register(ctx, name: str = None):
+    user_id = str(ctx.author.id)
+
+    if user_id in player_data:
+        await ctx.send("すでに登録されています。")
+        return
+
+    if name is None:
+        name = ctx.author.display_name
+
+    # 同じ名前が使われていないかチェック
+    if any(p["name"] == name for p in player_data.values()):
+        await ctx.send("この名前はすでに使われています。別の名前を選んでください。")
+        return
+
+    player_data[user_id] = {
+        "name": name,
+        "hp": 100,
+        "atk": 10,
+        "def": 5,
+        "location": "拠点",
+        "mode": "normal"
+    }
+    save_data()
+    await ctx.send(f"{name}さんを登録しました！")
+
+# 名前からuser_idを探す
+def find_user_id_by_name(name: str):
+    for user_id, data in player_data.items():
+        if data["name"] == name:
+            return user_id
+    return None
+
+# --------------------
+# 🎮 マイクラ風ストーリーゲーム
+
 
 @bot.command()
-async def attack(ctx, target: discord.Member = None):
-    user_id = str(ctx.author.id)
-    if target is None:
-        await ctx.send("攻撃する対象をメンションしてください。例: `!attack @ユーザー`")
-        return
-    if user_id not in player_data:
-        await ctx.send("まずは `!mine` で準備しましょう！")
-        return
-    target_id = str(target.id)
-    if target_id not in player_data:
-        await ctx.send(f"{target.display_name} さんはまだゲームに参加していません。")
-        return
-    if user_id == target_id:
-        await ctx.send("自分自身を攻撃することはできません！")
+async def story(ctx, who: str = None):
+    # 名前を指定しなかった場合はランダムに選ぶ
+    if not who:
+        if not player_data:
+            await ctx.send("プレイヤーが登録されていません。")
+            return
+        who = random.choice(list(player_data.values()))["name"]
+
+    places = ["ネザー", "エンド", "村", "洞窟", "渓谷", "天空の島"]
+    actions = ["クリーパーに話しかけた", "TNTを設置した", "村人を叩いた", "ゾンビピッグマンを挑発した", "ダイヤを拾った","彼女をつくった！","ボタンを押した"]
+    results = ["家が吹き飛んだ", "全ロスした", "敵が大群で襲ってきた", "エンダードラゴンが現れた", "サーバーが落ちた"]
+
+    place = random.choice(places)
+    action = random.choice(actions)
+    result = random.choice(results)
+
+    await ctx.send(f"**{who}**が{place}で{action}から、{result}！")
+
+@bot.command()
+async def attack(ctx, target_input: str = None):
+    attacker_id = str(ctx.author.id)
+
+    if attacker_id not in player_data:
+        await ctx.send("まずは `!register 名前` で登録してください。")
         return
 
-    attacker = player_data[user_id]
+    if target_input is None:
+        await ctx.send("攻撃する相手を指定してください（@メンション または プレイヤー名）")
+        return
+
+    # --- 対象がメンション（ID形式）なら変換 ---
+    if target_input.startswith("<@") and target_input.endswith(">"):
+        # メンション形式 → ID取得
+        target_id = target_input.replace("<@", "").replace("!", "").replace(">", "")
+        target_member = await ctx.guild.fetch_member(int(target_id))
+        target_name = target_member.display_name
+    else:
+        # プレイヤー名から検索
+        target_id = find_user_id_by_name(target_input)
+        if not target_id:
+            await ctx.send(f"「{target_input}」というプレイヤーは見つかりません。")
+            return
+        target_name = target_input
+
+    if target_id == attacker_id:
+        await ctx.send("自分自身を攻撃することはできません。")
+        return
+
+    if target_id not in player_data:
+        await ctx.send("相手はまだ登録されていません。")
+        return
+
+    attacker = player_data[attacker_id]
     defender = player_data[target_id]
 
     if not defender.get("alive", True):
-        await ctx.send(f"{target.display_name} さんは既に倒れています。")
+        await ctx.send(f"{target_name} はすでに倒れています。")
         return
 
     weapon = attacker.get("weapon", "素手")
@@ -538,21 +617,14 @@ async def attack(ctx, target: discord.Member = None):
     damage = max(attack_value - defense_value, 0)
     defender["hp"] = max(defender.get("hp", 100) - damage, 0)
 
-    msg = f"{ctx.author.display_name} は {target.display_name} に {damage} のダメージを与えました！ (残りHP: {defender['hp']})"
+    msg = f"{attacker['name']} は {target_name} に {damage} のダメージを与えた！ (残りHP: {defender['hp']})"
 
     if defender["hp"] <= 0:
         defender["alive"] = False
+        msg += f"\n💀 {target_name} は倒れた…"
 
-        # ここで保存！
-        save_data()
-
-        msg += f"\n💀 {target.display_name} は倒れました！"
-    else:
-        # ダメージだけ変わった場合も保存
-        save_data()
-
+    save_data()
     await ctx.send(msg)
-
 
 
 @bot.command()

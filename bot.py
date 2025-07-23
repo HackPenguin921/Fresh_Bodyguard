@@ -214,7 +214,7 @@ async def spin(ctx):
     await ctx.send(f"{ctx.author.display_name} のルーレット結果：{message}")
 
     @bot.command()
-async def time(ctx):
+async def clock(ctx):
     tz = pytz.timezone('Asia/Tokyo')
     now = datetime.now(tz)
     hour = now.hour
@@ -789,7 +789,7 @@ async def golem(ctx):
         "・`!spin`：ルーレットで運試し！🎰\n\n"
         "・`!story`：ストーリー作成できるよ！\n\n"
         "・`!register`：プレイヤー登録できるよ！\n\n"
-        "・`!time`：現在の時間が分かるよ!\n\n"
+        "・`!clock`：現在の時間が分かるよ!\n\n"
         "ゲームの冒険を存分に楽しんでくださいね！"
     )
     await ctx.send(help_text)

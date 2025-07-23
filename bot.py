@@ -131,8 +131,6 @@ MODE_PHRASES = {
     "さくらみこ": lambda s: s + "みこ～"
 }
 
-LEVEL_THRESHOLDS = [0, 10, 25, 45, 70, 100, 140, 185, 235, 290]
-
 DATA_FILE = "game_data.json"
 
 def load_data():
@@ -191,13 +189,245 @@ async def mine(ctx):
 
     # レベルアップ判定
     current_level = player_data[user_id]["level"]
-    while current_level < len(LEVEL_THRESHOLDS) and player_data[user_id]["exp"] >= LEVEL_THRESHOLDS[current_level]:
-        current_level += 1
+    while player_data[user_id]["exp"] >= 100:
+        player_data[user_id]["exp"] -= 100
+        player_data[user_id]["level"] += 1
+        await ctx.send(f"🎉 {ctx.author.display_name} さん、レベルアップ！ 現在レベル {player_data[user_id]['level']} です！")
+
     if current_level != player_data[user_id]["level"]:
         player_data[user_id]["level"] = current_level
         await ctx.send(f"🎉 {ctx.author.display_name} さん、レベルアップ！ 現在レベル {current_level} です！")
 
     await ctx.send(f"{ctx.author.display_name} は {found_item} を採掘しました！（経験値 +{gained_xp}）")
+
+
+@bot.command()
+async def spin(ctx):
+    user_id = str(ctx.author.id)
+    ensure_player_defaults(user_id)
+
+    # 抽選テーブル
+    wheel = [
+        ("🎉 レアアイテム獲得！", "ダイヤモンド"),
+        ("😎 ゴールド x5！", "ゴールド", 5),
+        ("💤 ハズレ…", None),
+        ("🍰 ケーキをゲット！", "ケーキ"),
+        ("🧪 回復薬 x1", "回復薬", 1),
+        ("🔥 エピック武器！", random.choice(["TNT", "トライデント", "呪いの魔法"])),
+    ]
+
+    result = random.choice(wheel)
+
+    # 報酬処理
+    message = result[0]
+    if result[1]:
+        item = result[1]
+        count = result[2] if len(result) > 2 else 1
+        for _ in range(count):
+            player_data[user_id]["inventory"].append(item)
+        message += f" `{item} x{count}` を入手しました！"
+    else:
+        message += " 何も得られませんでした…"
+
+    await ctx.send(f"{ctx.author.display_name} のルーレット結果：{message}")
+
+@bot.command()
+async def trade(ctx, target: discord.Member, *, item_name: str):
+    sender_id = str(ctx.author.id)
+    receiver_id = str(target.id)
+
+    if sender_id not in player_data or item_name not in player_data[sender_id]["inventory"]:
+        await ctx.send("そのアイテムは持っていません。")
+        return
+
+    def check(m):
+        return m.author == target and m.content.lower() == "yes"
+
+    await ctx.send(f"{target.mention} さん、{ctx.author.display_name} から `{item_name}` を受け取りますか？（`yes` と送信）")
+
+    try:
+        msg = await bot.wait_for("message", timeout=15.0, check=check)
+        player_data[sender_id]["inventory"].remove(item_name)
+        player_data[receiver_id]["inventory"].append(item_name)
+        await ctx.send(f"✅ トレード成功！{ctx.author.display_name} → {target.display_name} に `{item_name}` を渡しました。")
+    except:
+        await ctx.send("⏳ 時間切れか拒否されました。トレードはキャンセルされました。")
+
+duel_sessions = {}  # {channel_id: {"players": [user1, user2], "turn": 0 or 1, "hp": {user1: int, user2: int}}}
+
+@bot.command()
+async def duel(ctx, target: discord.Member):
+    challenger_id = str(ctx.author.id)
+    target_id = str(target.id)
+
+    if challenger_id == target_id:
+        await ctx.send("自分自身とは決闘できません。")
+        return
+    if challenger_id not in player_data or target_id not in player_data:
+        await ctx.send("両者ともゲーム参加者である必要があります。")
+        return
+    if ctx.channel.id in duel_sessions:
+        await ctx.send("このチャンネルでは既に決闘が進行中です。")
+        return
+
+    duel_sessions[ctx.channel.id] = {
+        "players": [challenger_id, target_id],
+        "turn": 0,
+        "hp": {
+            challenger_id: player_data[challenger_id]["hp"],
+            target_id: player_data[target_id]["hp"]
+        }
+    }
+
+    await ctx.send(f"{ctx.author.display_name} が {target.display_name} に決闘を挑みました！\n"
+                   f"{player_data[challenger_id]['weapon']} を装備して戦いましょう！\n"
+                   f"{ctx.author.display_name} のターンです。`!attack` で攻撃！")
+
+@bot.command()
+async def attack(ctx):
+    if ctx.channel.id not in duel_sessions:
+        await ctx.send("決闘は進行していません。")
+        return
+
+    session = duel_sessions[ctx.channel.id]
+    players = session["players"]
+    turn = session["turn"]
+    attacker_id = players[turn]
+    defender_id = players[1 - turn]
+
+    if str(ctx.author.id) != attacker_id:
+        await ctx.send("今はあなたのターンではありません。")
+        return
+
+    attacker = player_data[attacker_id]
+    defender = player_data[defender_id]
+
+    weapon = attacker.get("weapon", "素手")
+    attack_range = WEAPONS.get(weapon, WEAPONS["素手"])["attack"]
+    attack_value = random.randint(*attack_range)
+
+    armor_name = defender.get("armor")
+    defense_value = 0
+    if armor_name and armor_name in WEAPONS:
+        defense_value = WEAPONS[armor_name]["defense"]
+
+    damage = max(attack_value - defense_value, 0)
+    session["hp"][defender_id] -= damage
+
+    msg = (f"{ctx.author.display_name} の攻撃！ {player_data[attacker_id]['weapon']} で "
+           f"{damage} ダメージを与えた！\n"
+           f"{player_data[defender_id]['weapon']} の {player_data[defender_id]['weapon']} は残りHP {session['hp'][defender_id]}")
+
+    if session["hp"][defender_id] <= 0:
+        msg += f"\n💀 {player_data[defender_id]['weapon']} は倒れました！決闘終了！"
+        # 決闘終了処理
+        del duel_sessions[ctx.channel.id]
+    else:
+        session["turn"] = 1 - turn
+        next_player_id = players[session["turn"]]
+        msg += f"\n次は {bot.get_user(int(next_player_id)).display_name} のターンです！"
+
+    await ctx.send(msg)
+
+SHOP_ITEMS = {
+    "回復薬": 10,
+    "剣": 50,
+    "盾": 40,
+    "弓矢": 45,
+    "トライデント": 80,
+}
+
+# プレイヤーデータに「gold」を追加し、デフォルトは100
+def ensure_player_defaults(user_id):
+    defaults = {
+        "inventory": [],
+        "level": 1,
+        "exp": 0,
+        "hp": 100,
+        "max_hp": 100,
+        "weapon": "素手",
+        "armor": None,
+        "potions": 1,
+        "mode": "平和",
+        "alive": True,
+        "structures": [],
+        "gold": 100,  # 新規追加
+    }
+    # 省略
+
+@bot.command()
+async def shop(ctx):
+    shop_text = "**ショップ商品リスト**\n"
+    for item, price in SHOP_ITEMS.items():
+        shop_text += f"{item}: {price} ゴールド\n"
+    await ctx.send(shop_text)
+
+@bot.command()
+async def buy(ctx, *, item_name: str):
+    user_id = str(ctx.author.id)
+    if user_id not in player_data:
+        await ctx.send("ゲームを始めてください。")
+        return
+    if item_name not in SHOP_ITEMS:
+        await ctx.send("ショップにその商品はありません。")
+        return
+
+    price = SHOP_ITEMS[item_name]
+    gold = player_data[user_id].get("gold", 0)
+
+    if gold < price:
+        await ctx.send(f"ゴールドが足りません。所持ゴールド: {gold}、必要ゴールド: {price}")
+        return
+
+    player_data[user_id]["gold"] -= price
+    player_data[user_id]["inventory"].append(item_name)
+
+    await ctx.send(f"{ctx.author.display_name} は {item_name} を {price} ゴールドで購入しました！ 所持ゴールド: {player_data[user_id]['gold']}")
+
+QUESTS = [
+    {"desc": "森の中の魔物退治", "exp": 20, "reward": "鉄"},
+    {"desc": "川の向こうの採掘", "exp": 15, "reward": "金"},
+    {"desc": "古代遺跡の調査", "exp": 30, "reward": "ダイヤモンド"},
+]
+
+@bot.command()
+async def quest(ctx):
+    user_id = str(ctx.author.id)
+    ensure_player_defaults(user_id)
+
+    quest = random.choice(QUESTS)
+    success = random.random() < 0.7  # 70% 成功率
+
+    if success:
+        player_data[user_id]["exp"] += quest["exp"]
+        player_data[user_id]["inventory"].append(quest["reward"])
+        await ctx.send(f"クエスト成功！『{quest['desc']}』\n経験値 +{quest['exp']}, アイテム `{quest['reward']}` を獲得！")
+    else:
+        await ctx.send(f"クエスト失敗…『{quest['desc']}』次は頑張ろう！")
+
+# player_data[user_id]["pet"] = {"name": str, "level": int, "exp": int}
+
+@bot.command()
+async def pet(ctx):
+    user_id = str(ctx.author.id)
+    if user_id not in player_data:
+        await ctx.send("まずはゲームを始めてください。")
+        return
+
+    pet = player_data[user_id].get("pet")
+    if not pet:
+        # 新規ペット作成
+        player_data[user_id]["pet"] = {"name": "ゴーレム", "level": 1, "exp": 0}
+        await ctx.send(f"{ctx.author.display_name} に新しいペット『ゴーレム』が仲間になりました！")
+    else:
+        # レベルアップ判定（経験値がたまったら）
+        pet["exp"] += 10
+        if pet["exp"] >= 100:
+            pet["level"] += 1
+            pet["exp"] -= 100
+            await ctx.send(f"ペット『{pet['name']}』がレベルアップ！現在レベル {pet['level']}！")
+        else:
+            await ctx.send(f"ペット『{pet['name']}』は経験値を {pet['exp']}/100 ためました。")
 
 
 @bot.command()
@@ -347,16 +577,25 @@ async def build(ctx, *, building_name: str):
 @bot.command()
 async def golem(ctx):
     help_text = (
-        "🧱 **Golem ゲームの遊び方**\n"
-        "`!mine`：採掘してアイテムと経験値をゲット\n"
-        "`!inventory`：インベントリを確認\n"
-        "`!level`：レベルと経験値を表示\n"
-        "`!equip アイテム名`：武器や盾を装備\n"
-        "`!attack @ユーザー`：他プレイヤーに攻撃\n"
-        "`!use_potion`：回復薬でHP回復\n"
-        "`!build 建物名`：建物を建てて報酬ゲット\n"
-        "`/mode モード名`：発言モードを変更（猫・執事など）\n"
-        "`!back`：拠点に戻ってHP全回復\n"
+        "🧱 **Golem ゲームへようこそ！** 🧱\n\n"
+        "🎮 **基本コマンド**\n"
+        "・`!mine`：採掘してアイテムと経験値をゲット！⛏️\n"
+        "・`!inventory`：インベントリを確認します。🎒\n"
+        "・`!level`：レベルと経験値を表示。⭐\n"
+        "・`!equip <アイテム名>`：武器や盾を装備。🗡️🛡️\n"
+        "・`!attack @ユーザー`：他プレイヤーに攻撃！⚔️\n"
+        "・`!use_potion`：回復薬でHPを回復。💊\n"
+        "・`!build <建物名>`：建物を建てて報酬ゲット！🏰\n"
+        "・`/mode <モード名>`：発言モードを変更（猫・執事など）。😺🤵\n"
+        "・`!back`：拠点に戻ってHP全回復。🏠\n\n"
+        "🆕 **新機能**\n"
+        "・`!duel @ユーザー`：ターン制PvP決闘で腕試し！⚔️🛡️\n"
+        "・`!shop` / `!buy <アイテム名>`：ショップで装備やアイテムを購入可能！🛒\n"
+        "・`!quest`：ランダムクエストに挑戦！報酬ゲット！🎯\n"
+        "・`!pet`：ペットと一緒に冒険しよう！🐾\n"
+        "・`!trade @ユーザー <自分のアイテム> <相手のアイテム>`：アイテム交換機能（準備中）🔄\n"
+        "・`!spin`：ルーレットで運試し！（準備中）🎰\n\n"
+        "ゲームの冒険を存分に楽しんでくださいね！"
     )
     await ctx.send(help_text)
 

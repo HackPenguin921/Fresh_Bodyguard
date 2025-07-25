@@ -16,8 +16,26 @@ import asyncio
 from datetime import datetime
 import pytz
 import aiohttp
+import datetime
+from collections import defaultdict
 
+DAILY_FILE = "daily.json"
 
+# 初期読み込み
+def load_daily_data():
+    if os.path.exists(DAILY_FILE):
+        with open(DAILY_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    else:
+        return {}
+
+# 保存
+def save_daily_data(data):
+    with open(DAILY_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+# 起動時に読み込み
+user_responses = defaultdict(dict, load_daily_data())
 
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
@@ -241,6 +259,37 @@ fake_responses = [
     "🤔 その話、前にも誰かが言ってたような…",
     "💤 嘘か本当かより、眠くなる話だね。"
 ]
+
+# お題リスト（例追加済み）
+daily_prompts = [
+    "今日のラッキーアイテムは？",
+    "怒った猫の気持ちを代弁せよ",
+    "もし明日が世界最後の日なら？",
+    "今の気分を一言で！",
+    "あなたの秘密の趣味をこっそり教えて",
+    "最強の言い訳とは？",
+    "子供のころの夢は？",
+    "今日一番嬉しかったことは？",
+    "理想の朝ごはんは？",
+    "次に生まれ変わるなら何になりたい？",
+    "自分を漢字一文字で表すと？",
+    "最近「やっちまった」ことは？",
+    "無人島に一つだけ持っていくなら？"
+]
+
+ratings = [
+    "🌟素晴らしい！", "😆おもしろい！", "🤔深い…",
+    "💡なるほど！", "😮予想外！", "👍いいね！", "😂笑った",
+    "👏見事！", "✨キラリと光る", "🧠賢い！", "🔥熱いね！"
+]
+
+tags = [
+    "#哲学", "#ネタ", "#ほっこり", "#感情", "#ちょっと変",
+    "#共感", "#謎すぎる", "#知的", "#笑撃", "#妄想"
+]
+
+# user_id -> date_str -> 回答データ
+user_responses = defaultdict(dict)
 
 DATA_FILE = "game_data.json"
 
@@ -484,6 +533,119 @@ async def on_disconnect():
             await channel.send("⚠️ Botは現在メンテナンスモードです。復旧をお待ちください。")
         except Exception:
             pass  # 切断時は送れない場合もあるので例外回避
+
+
+@commands.command(name="daily")
+async def daily(ctx):
+    user_id = str(ctx.author.id)
+    today = datetime.date.today().isoformat()
+
+    # すでに回答済み？
+    if today in user_responses[user_id]:
+        await ctx.send(f"{ctx.author.mention} 今日はもう答えてるよ！また明日🎉")
+        return
+
+    # お題選定（固定インデックス or 完全ランダムも可）
+    prompt_index = hash(today) % len(daily_prompts)
+    prompt = daily_prompts[prompt_index]
+
+    await ctx.send(f"🎯 今日のお題:\n> **{prompt}**\n\n30秒以内に答えてね！")
+
+    def check(m):
+        return m.author == ctx.author and m.channel == ctx.channel
+
+    try:
+        msg = await ctx.bot.wait_for("message", timeout=30.0, check=check)
+        response = msg.content.strip()
+
+        rating = random.choice(ratings)
+        tag = random.choice(tags)
+
+        # 保存（上書きなし）
+        user_responses[user_id][today] = {
+            "prompt": prompt,
+            "response": response,
+            "rating": rating,
+            "tag": tag
+        }
+
+        await ctx.send(
+            f"📝 あなたの回答: **{response}**\n{rating} {tag}"
+        )
+
+    except asyncio.TimeoutError:
+        await ctx.send(f"{ctx.author.mention} 時間切れだよ〜😢 また挑戦してね！")
+
+
+@commands.command(name="daily_history")
+async def daily_history(ctx):
+    user_id = str(ctx.author.id)
+    responses = user_responses.get(user_id, {})
+
+    if not responses:
+        await ctx.send(f"{ctx.author.mention} まだ回答履歴がないよ！ `/daily` で始めよう🎯")
+        return
+
+    lines = []
+    sorted_days = sorted(responses.keys(), reverse=True)[:7]
+    for date in sorted_days:
+        entry = responses[date]
+        lines.append(f"📅 {date}: `{entry['prompt']}`\n→ **{entry['response']}** {entry['rating']} {entry['tag']}")
+
+    await ctx.send(f"🗂 **{ctx.author.name} の履歴**（最新7件）:\n\n" + "\n\n".join(lines))
+
+@commands.command(name="daily_leaderboard")
+async def daily_leaderboard(ctx):
+    today = datetime.date.today().isoformat()
+    results = []
+
+    for user_id, records in user_responses.items():
+        if today in records:
+            entry = records[today]
+            user = await ctx.bot.fetch_user(int(user_id))
+            results.append((user.name, entry["response"], entry["rating"], entry["tag"]))
+
+    if not results:
+        await ctx.send("📊 まだ誰も今日の回答をしていないみたい！ `/daily` で一番乗りしよう🎯")
+        return
+
+    random.shuffle(results)
+    lines = []
+    for i, (name, response, rating, tag) in enumerate(results[:5], start=1):
+        lines.append(f"**#{i}** `{name}`: {response} {rating} {tag}")
+
+    await ctx.send("🏆 **今日の面白回答ランキング**\n\n" + "\n".join(lines))
+
+
+@commands.command(name="daily_edit")
+async def daily_edit(ctx):
+    user_id = str(ctx.author.id)
+    today = datetime.date.today().isoformat()
+
+    if today not in user_responses[user_id]:
+        await ctx.send(f"{ctx.author.mention} まだ今日の回答がないよ！ `/daily` から始めてね。")
+        return
+
+    await ctx.send("✏️ 新しい回答を30秒以内に入力してね！")
+
+    def check(m):
+        return m.author == ctx.author and m.channel == ctx.channel
+
+    try:
+        msg = await ctx.bot.wait_for("message", timeout=30.0, check=check)
+        new_response = msg.content.strip()
+
+        # 上書き処理
+        rating = random.choice(ratings)
+        tag = random.choice(tags)
+        user_responses[user_id][today]["response"] = new_response
+        user_responses[user_id][today]["rating"] = rating
+        user_responses[user_id][today]["tag"] = tag
+
+        await ctx.send(f"✅ 回答を更新したよ！\n→ **{new_response}** {rating} {tag}")
+    except asyncio.TimeoutError:
+        await ctx.send(f"{ctx.author.mention} 時間切れ！もう一度 `/daily_edit` を試してね。")
+
 
 @bot.command()
 async def trade(ctx, target: discord.Member, *, item_name: str):

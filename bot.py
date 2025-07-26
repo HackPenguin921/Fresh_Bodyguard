@@ -46,6 +46,8 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
+duel_sessions = {}  # ← ファイル先頭または duel/battle コマンドの前に追加
+
 
 class PaginatorView(View):
     def __init__(self, pages, author_id):
@@ -326,14 +328,10 @@ def convert_old_items(inventory):
             converted.append(item)
     return converted
 
-# 結果を確認
-print(player_inventory)
+def convert_inventory_for_user(user_id: str):
+    raw_inventory = player_data.get(user_id, {}).get("inventory", [])
+    player_data[user_id]["inventory"] = convert_old_items(raw_inventory)
 
-user_id = str(ctx.author.id)
-raw_inventory = player_data[user_id].get("inventory", [])
-
-# 旧形式の可能性を考慮して変換
-player_data[user_id]["inventory"] = convert_old_items(raw_inventory)
 
 WEAPONS = {
     "素手": {"attack": (5, 10), "defense": 0},
@@ -540,6 +538,15 @@ async def tenki(ctx, *, city: str = None):
             desc = weather_desc.get(weather_code, "不明な天気")
 
             await ctx.send(f"**{city}** の現在の天気:\n気温: {temp}°C\n風速: {windspeed} km/h\n天気: {desc}")
+
+def test_convert():
+    player_inventory = ["石", "丸石", {"name": "炎の剣", "rarity": "legendary"}]
+    converted = convert_old_items(player_inventory)
+    print(converted)
+
+if __name__ == "__main__":
+    test_convert()
+
 
 
 @bot.command()
@@ -940,37 +947,6 @@ SHOP_ITEMS = {
     "トライデント": 80,
 }
 
-# プレイヤーデータに「gold」を追加し、デフォルトは100
-def ensure_player_defaults(user_id):
-    defaults = {
-        "inventory": [],
-        "level": 1,
-        "exp": 0,
-        "hp": 100,
-        "max_hp": 100,
-        "weapon": "素手",
-        "armor": None,
-        "potions": 1,
-        "mode": "平和",
-        "alive": True,
-        "structures": [],
-        "gold": 100,
-        "pet": None,
-    }
-
-    if user_id not in player_data:
-        player_data[user_id] = defaults.copy()
-    else:
-        for key, value in defaults.items():
-            if key not in player_data[user_id]:
-                player_data[user_id][key] = value
-
-def find_user_id_by_name(name: str):
-    for uid, pdata in player_data.items():
-        if pdata.get("name") == name:
-            return uid
-    return None
-
 @bot.command()
 async def shop(ctx):
     shop_text = "**ショップ商品リスト**\n"
@@ -1064,23 +1040,22 @@ async def pet(ctx):
 async def inventory(ctx):
     user_id = str(ctx.author.id)
 
-    if user_id not in player_data or not player_data[user_id]["inventory"]:
+    # player_dataの存在チェック
+    if user_id not in player_data:
+        player_data[user_id] = {"inventory": []}
+
+    raw_inventory = player_data[user_id].get("inventory", [])
+    # 旧形式アイテムを変換
+    player_data[user_id]["inventory"] = convert_old_items(raw_inventory)
+
+    inv = player_data[user_id]["inventory"]
+    if not inv:
         await ctx.send("あなたのインベントリは空です。まずは `!mine` や `!gachaMine` でアイテムを集めましょう！")
         return
 
-    # ここで変換（旧形式対応）
-    player_data[user_id]["inventory"] = convert_old_items(player_data[user_id]["inventory"])
+    # ここにインベントリ表示の処理などを書く
+    await ctx.send(f"あなたのインベントリ: {inv}")
 
-    inv = player_data[user_id]["inventory"]
-
-    # レアリティごとに分類してカウント
-    grouped = {}
-    for item in inv:
-        rarity = item.get("rarity", "common")
-        name = item["name"]
-        if rarity not in grouped:
-            grouped[rarity] = {}
-        grouped[rarity][name] = grouped[rarity].get(name, 0) + 1
 
     # 以下はレアリティごとに表示用の埋め込みとか続く感じですね
 
@@ -1139,19 +1114,22 @@ async def level(ctx):
 async def equip(ctx, *, item_name: str):
     user_id = str(ctx.author.id)
     if user_id not in player_data:
-        await ctx.send("まずは `!mine` でゲームを開始してください。")
+        await ctx.send("まずは !mine でゲームを開始してください。")
         return
+
     inv = player_data[user_id]["inventory"]
     if item_name not in inv:
         await ctx.send(f"{item_name} はインベントリに存在しません。")
         return
-    # 装備可能か判定（武器or盾だけ装備可能）
+
+    # 装備判定ロジック（修正版）
     if item_name in WEAPONS:
-        player_data[user_id]["weapon"] = item_name
-        await ctx.send(f"{ctx.author.display_name} は {item_name} を装備しました。")
-    elif item_name == "盾":
-        player_data[user_id]["armor"] = item_name
-        await ctx.send(f"{ctx.author.display_name} は 盾 を装備しました。")
+        if WEAPONS[item_name]["defense"] > 0:
+            player_data[user_id]["armor"] = item_name
+            await ctx.send(f"{ctx.author.display_name} は {item_name} を装備しました（防御用）。")
+        else:
+            player_data[user_id]["weapon"] = item_name
+            await ctx.send(f"{ctx.author.display_name} は {item_name} を装備しました（攻撃用）。")
     else:
         await ctx.send(f"{item_name} は装備できません。武器または盾のみ装備可能です。")
 

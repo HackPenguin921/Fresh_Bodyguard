@@ -16,26 +16,8 @@ import asyncio
 from datetime import datetime
 import pytz
 import aiohttp
-import datetime
-from collections import defaultdict
 
-DAILY_FILE = "daily.json"
 
-# 初期読み込み
-def load_daily_data():
-    if os.path.exists(DAILY_FILE):
-        with open(DAILY_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    else:
-        return {}
-
-# 保存
-def save_daily_data(data):
-    with open(DAILY_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-
-# 起動時に読み込み
-user_responses = defaultdict(dict, load_daily_data())
 
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
@@ -46,8 +28,6 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
-duel_sessions = {}  # ← ファイル先頭または duel/battle コマンドの前に追加
-
 
 class PaginatorView(View):
     def __init__(self, pages, author_id):
@@ -84,94 +64,6 @@ PLAYER = "⭕"
 CPU = "❌"
 EMPTY = "⬜"
 
-
-# --- ファイル読み込み ---
-if os.path.exists("user_data.json"):
-    with open("user_data.json", "r", encoding="utf-8") as f:
-        user_data = json.load(f)
-else:
-    user_data = {}
-
-if os.path.exists("gacha_items.json"):
-    with open("gacha_items.json", "r", encoding="utf-8") as f:
-        gacha_items = json.load(f)
-else:
-    gacha_items = {}
-
-    user_coins = defaultdict(int)
-user_items = defaultdict(list)
-
-# ガチャアイテムリスト（名前と出現率）
-items = [
-    ("🍎 リンゴ", 40),
-    ("🥩 ステーキ", 30),
-    ("⚔ 鋭い剣", 15),
-    ("🎯 必中の弓", 10),
-    ("👑 王の冠", 5),
-]
-choices, weights = zip(*items)
-
-# 🎰 アニメーション用絵文字エフェクト
-GACHA_ANIMATION = ["🎲", "💫", "🎁", "✨", "🔄", "🎉"]
-
-# --- レアリティ出現確率 ---
-RARITY_RATES = {
-    "伝説レア": 3,
-    "超激レア": 7,
-    "激レア": 15,
-    "レア": 25,
-    "ノーマル": 50
-}
-# 種類別の素材データ
-item_types = ["剣", "弓", "槍", "鎧", "帽子", "ポーション", "果物", "動物", "召喚獣", "本", "装飾品", "機械"]
-adjectives = ["炎の", "氷の", "神聖な", "呪われた", "暗黒の", "輝く", "幻の", "ミニ", "巨大な", "伝説の"]
-suffixes = ["ブレード", "ハンマー", "ロッド", "アーマー", "クラウン", "エッグ", "エリクサー", "ソウル", "コア", "ボックス"]
-
-# --- レアリティ絵文字 ---
-RARITY_EMOJIS = {
-    "伝説レア": "🟨",
-    "超激レア": "🟥",
-    "激レア": "🟪",
-    "レア": "🟦",
-    "ノーマル": "⚪️"
-}
-
-def choose_rarity():
-    rarities = [
-        ("legendary", 1),
-        ("epic", 4),
-        ("rare", 15),
-        ("uncommon", 30),
-        ("common", 50),
-    ]
-
-    total = sum(prob for _, prob in rarities)
-    pick = random.uniform(0, total)
-    current = 0
-    for rarity, prob in rarities:
-        current += prob
-        if pick <= current:
-            return rarity
-
-
-# 100個のアイテムを生成
-items = []
-for i in range(100):
-    name = f"{random.choice(adjectives)}{random.choice(item_types)}{random.choice(suffixes)}"
-    rarity = choose_rarity()
-    item = {
-        "id": i + 1,
-        "name": name,
-        "rarity": rarity
-    }
-    items.append(item)
-
-# JSONに保存
-with open("gacha_items.json", "w", encoding="utf-8") as f:
-    json.dump(items, f, ensure_ascii=False, indent=2)
-
-print("✅ gacha_items.json を生成しました（100アイテム）")
-
 DATA_FILE = "player_data.json"
 player_data = defaultdict(lambda: {
     "inventory": [],
@@ -199,7 +91,6 @@ def ensure_player_defaults(user_id):
         "mode": "平和",
         "alive": True,
         "structures": [],
-        "coins": 0,
     }
 
     if user_id not in player_data:
@@ -208,45 +99,6 @@ def ensure_player_defaults(user_id):
         for key, value in defaults.items():
             if key not in player_data[user_id]:
                 player_data[user_id][key] = value
-
-# --- 抽選関数 ---
-def draw_item():
-    rarities = list(RARITY_RATES.keys())
-    weights = list(RARITY_RATES.values())
-    selected_rarity = random.choices(rarities, weights=weights)[0]
-    item_list = [item for item, r in gacha_items.items() if r == selected_rarity]
-    item = random.choice(item_list)
-    return item, selected_rarity
-
-# --- コインチェック ---
-def get_user_coins(user_id):
-    return user_data.get(str(user_id), {}).get("coins", 0)
-
-def modify_user_coins(user_id, delta):
-    uid = str(user_id)
-    if uid not in user_data:
-        user_data[uid] = {"coins": 0, "items": []}
-    user_data[uid]["coins"] += delta
-    with open("user_data.json", "w", encoding="utf-8") as f:
-        json.dump(user_data, f, ensure_ascii=False, indent=2)
-
-# --- 所持アイテム保存 ---
-def add_user_item(user_id, item):
-    uid = str(user_id)
-    if uid not in user_data:
-        user_data[uid] = {"coins": 0, "items": []}
-    user_data[uid]["items"].append(item)
-    with open("user_data.json", "w", encoding="utf-8") as f:
-        json.dump(user_data, f, ensure_ascii=False, indent=2)
-
-# --- ガチャView ---
-class GachaView(View):
-    def __init__(self):
-        super().__init__(timeout=None)
-
-        self.add_item(Button(label="1回ガチャ", style=discord.ButtonStyle.primary, custom_id="gacha1"))
-        self.add_item(Button(label="10連ガチャ", style=discord.ButtonStyle.success, custom_id="gacha10"))
-
 
 # CPU AIロジック
 def get_best_move(board: list[str]) -> int:
@@ -331,24 +183,6 @@ class TicTacToeGame(View):
             btn.disabled = True
         await interaction.response.edit_message(content=end_message, view=self)
 
-
-def convert_old_items(inventory):
-    converted = []
-    for item in inventory:
-        if isinstance(item, str):
-            converted.append({
-                "name": item,
-                "rarity": "common"
-            })
-        elif isinstance(item, dict):
-            converted.append(item)
-    return converted
-
-def convert_inventory_for_user(user_id: str):
-    raw_inventory = player_data.get(user_id, {}).get("inventory", [])
-    player_data[user_id]["inventory"] = convert_old_items(raw_inventory)
-
-
 WEAPONS = {
     "素手": {"attack": (5, 10), "defense": 0},
     "剣": {"attack": (20, 40), "defense": 0},
@@ -408,37 +242,6 @@ fake_responses = [
     "💤 嘘か本当かより、眠くなる話だね。"
 ]
 
-# お題リスト（例追加済み）
-daily_prompts = [
-    "今日のラッキーアイテムは？",
-    "怒った猫の気持ちを代弁せよ",
-    "もし明日が世界最後の日なら？",
-    "今の気分を一言で！",
-    "あなたの秘密の趣味をこっそり教えて",
-    "最強の言い訳とは？",
-    "子供のころの夢は？",
-    "今日一番嬉しかったことは？",
-    "理想の朝ごはんは？",
-    "次に生まれ変わるなら何になりたい？",
-    "自分を漢字一文字で表すと？",
-    "最近「やっちまった」ことは？",
-    "無人島に一つだけ持っていくなら？"
-]
-
-ratings = [
-    "🌟素晴らしい！", "😆おもしろい！", "🤔深い…",
-    "💡なるほど！", "😮予想外！", "👍いいね！", "😂笑った",
-    "👏見事！", "✨キラリと光る", "🧠賢い！", "🔥熱いね！"
-]
-
-tags = [
-    "#哲学", "#ネタ", "#ほっこり", "#感情", "#ちょっと変",
-    "#共感", "#謎すぎる", "#知的", "#笑撃", "#妄想"
-]
-
-# user_id -> date_str -> 回答データ
-user_responses = defaultdict(dict)
-
 DATA_FILE = "game_data.json"
 
 def load_data():
@@ -474,50 +277,6 @@ async def geocode(city_name):
             lat = data[0]["lat"]
             lon = data[0]["lon"]
             return float(lat), float(lon)
-
-# 単発ガチャ
-@bot.command()
-async def gachaMine(ctx):
-    user_id = str(ctx.author.id)
-
-    if user_coins[user_id] < 1500:
-        await ctx.send(f"💰 コインが足りません！（現在: {user_coins[user_id]}枚）")
-        return
-
-    user_coins[user_id] -= 1500
-
-    # アニメーション風演出
-    msg = await ctx.send(f"{ctx.author.mention} のガチャ開始！ {GACHA_ANIMATION[0]}")
-    for i in range(5):
-        await asyncio.sleep(0.3)
-        await msg.edit(content=f"{ctx.author.mention} のガチャ開始！ {random.choice(GACHA_ANIMATION)}")
-
-    # 結果
-    result = random.choices(choices, weights=weights, k=1)[0]
-    user_items[user_id].append(result)
-    await msg.edit(content=f"🎉 {ctx.author.mention} のガチャ結果：**{result}** をゲットしました！\n💰 残コイン：{user_coins[user_id]} 枚")
-
-# 10連ガチャ
-@bot.command()
-async def gacha10(ctx):
-    user_id = str(ctx.author.id)
-
-    if user_coins[user_id] < 15000:
-        await ctx.send(f"💰 コインが足りません！（現在: {user_coins[user_id]}枚）")
-        return
-
-    user_coins[user_id] -= 15000
-    await ctx.send(f"🔟連ガチャ開始！ {ctx.author.mention} さん、ワクワク…")
-
-    results = []
-    for i in range(10):
-        await asyncio.sleep(0.2)
-        result = random.choices(choices, weights=weights, k=1)[0]
-        results.append(result)
-        user_items[user_id].append(result)
-
-    result_text = "\n".join([f"{i+1}. {item}" for i, item in enumerate(results)])
-    await ctx.send(f"🎊 {ctx.author.mention} の10連ガチャ結果！\n```\n{result_text}\n```\n💰 残コイン：{user_coins[user_id]} 枚")
 
 
 @bot.command()
@@ -599,22 +358,12 @@ async def tenki(ctx, *, city: str = None):
 
             await ctx.send(f"**{city}** の現在の天気:\n気温: {temp}°C\n風速: {windspeed} km/h\n天気: {desc}")
 
-def test_convert():
-    player_inventory = ["石", "丸石", {"name": "炎の剣", "rarity": "legendary"}]
-    converted = convert_old_items(player_inventory)
-    print(converted)
-
-if __name__ == "__main__":
-    test_convert()
-
-
 
 @bot.command()
 async def mine(ctx):
     user_id = str(ctx.author.id)
     ensure_player_defaults(user_id)
 
-    # アイテム抽選
     weighted_items = (
         RARITY["common"] * 50 +
         RARITY["uncommon"] * 30 +
@@ -625,26 +374,18 @@ async def mine(ctx):
     found_item = random.choice(weighted_items)
     player_data[user_id]["inventory"].append(found_item)
 
-    # 経験値
     gained_xp = random.randint(1, 5)
     player_data[user_id]["exp"] += gained_xp
 
-    # コイン獲得（5〜15枚）
-    gained_coins = random.randint(5, 15)
-    player_data[user_id]["coins"] += gained_coins
-
-    # レベルアップ処理
     while player_data[user_id]["exp"] >= 100:
         player_data[user_id]["exp"] -= 100
         player_data[user_id]["level"] += 1
         await ctx.send(f"🎉 {ctx.author.display_name} さん、レベルアップ！ 現在レベル {player_data[user_id]['level']} です！")
 
+    # 変更を保存
     save_data()
 
-    await ctx.send(
-        f"⛏️ {ctx.author.display_name} は {found_item} を採掘！（経験値 +{gained_xp}, コイン +{gained_coins}）"
-    )
-
+    await ctx.send(f"{ctx.author.display_name} は {found_item} を採掘しました！（経験値 +{gained_xp}）")
 
 @bot.command(name="fake")
 async def fake(ctx, *, message: str):
@@ -656,45 +397,6 @@ async def fake(ctx, *, message: str):
 async def start_marubatu(ctx):
     game = TicTacToeGame()
     await ctx.send("⭕ あなた vs ❌ CPU の ○×ゲーム！", view=game)
-
-@bot.event
-async def on_interaction(interaction):
-    if interaction.type == discord.InteractionType.component:
-        user = interaction.user
-        uid = str(user.id)
-        if uid not in user_data:
-            user_data[uid] = {"coins": 1500, "items": []}  # 初期コイン
-
-        if interaction.data["custom_id"] == "gacha1":
-            if get_user_coins(uid) < 150:
-                await interaction.response.send_message("💸 コインが足りません！（150枚必要）", ephemeral=True)
-                return
-            modify_user_coins(uid, -150)
-            item, rarity = draw_item()
-            add_user_item(uid, item)
-            emoji = RARITY_EMOJIS[rarity]
-            await interaction.response.send_message(f"{emoji}【{rarity}】『{item}』をゲット！")
-
-        elif interaction.data["custom_id"] == "gacha10":
-            if get_user_coins(uid) < 1500:
-                await interaction.response.send_message("💸 コインが足りません！（1500枚必要）", ephemeral=True)
-                return
-            modify_user_coins(uid, -1500)
-            result_dict = {r: [] for r in RARITY_RATES}
-            for _ in range(10):
-                item, rarity = draw_item()
-                add_user_item(uid, item)
-                result_dict[rarity].append(item)
-
-            result_msg = "🎉 10連ガチャ結果 🎉\n"
-            for r in RARITY_RATES:
-                items = result_dict[r]
-                if items:
-                    emoji = RARITY_EMOJIS[r]
-                    result_msg += f"{emoji}【{r}】\n- " + "\n- ".join(items) + "\n"
-
-            await interaction.response.send_message(result_msg)
-
 
 @bot.command()
 async def spin(ctx):
@@ -782,119 +484,6 @@ async def on_disconnect():
             await channel.send("⚠️ Botは現在メンテナンスモードです。復旧をお待ちください。")
         except Exception:
             pass  # 切断時は送れない場合もあるので例外回避
-
-
-@commands.command(name="daily")
-async def daily(ctx):
-    user_id = str(ctx.author.id)
-    today = datetime.date.today().isoformat()
-
-    # すでに回答済み？
-    if today in user_responses[user_id]:
-        await ctx.send(f"{ctx.author.mention} 今日はもう答えてるよ！また明日🎉")
-        return
-
-    # お題選定（固定インデックス or 完全ランダムも可）
-    prompt_index = hash(today) % len(daily_prompts)
-    prompt = daily_prompts[prompt_index]
-
-    await ctx.send(f"🎯 今日のお題:\n> **{prompt}**\n\n30秒以内に答えてね！")
-
-    def check(m):
-        return m.author == ctx.author and m.channel == ctx.channel
-
-    try:
-        msg = await ctx.bot.wait_for("message", timeout=30.0, check=check)
-        response = msg.content.strip()
-
-        rating = random.choice(ratings)
-        tag = random.choice(tags)
-
-        # 保存（上書きなし）
-        user_responses[user_id][today] = {
-            "prompt": prompt,
-            "response": response,
-            "rating": rating,
-            "tag": tag
-        }
-
-        await ctx.send(
-            f"📝 あなたの回答: **{response}**\n{rating} {tag}"
-        )
-
-    except asyncio.TimeoutError:
-        await ctx.send(f"{ctx.author.mention} 時間切れだよ〜😢 また挑戦してね！")
-
-
-@commands.command(name="daily_history")
-async def daily_history(ctx):
-    user_id = str(ctx.author.id)
-    responses = user_responses.get(user_id, {})
-
-    if not responses:
-        await ctx.send(f"{ctx.author.mention} まだ回答履歴がないよ！ `/daily` で始めよう🎯")
-        return
-
-    lines = []
-    sorted_days = sorted(responses.keys(), reverse=True)[:7]
-    for date in sorted_days:
-        entry = responses[date]
-        lines.append(f"📅 {date}: `{entry['prompt']}`\n→ **{entry['response']}** {entry['rating']} {entry['tag']}")
-
-    await ctx.send(f"🗂 **{ctx.author.name} の履歴**（最新7件）:\n\n" + "\n\n".join(lines))
-
-@commands.command(name="daily_leaderboard")
-async def daily_leaderboard(ctx):
-    today = datetime.date.today().isoformat()
-    results = []
-
-    for user_id, records in user_responses.items():
-        if today in records:
-            entry = records[today]
-            user = await ctx.bot.fetch_user(int(user_id))
-            results.append((user.name, entry["response"], entry["rating"], entry["tag"]))
-
-    if not results:
-        await ctx.send("📊 まだ誰も今日の回答をしていないみたい！ `/daily` で一番乗りしよう🎯")
-        return
-
-    random.shuffle(results)
-    lines = []
-    for i, (name, response, rating, tag) in enumerate(results[:5], start=1):
-        lines.append(f"**#{i}** `{name}`: {response} {rating} {tag}")
-
-    await ctx.send("🏆 **今日の面白回答ランキング**\n\n" + "\n".join(lines))
-
-
-@commands.command(name="daily_edit")
-async def daily_edit(ctx):
-    user_id = str(ctx.author.id)
-    today = datetime.date.today().isoformat()
-
-    if today not in user_responses[user_id]:
-        await ctx.send(f"{ctx.author.mention} まだ今日の回答がないよ！ `/daily` から始めてね。")
-        return
-
-    await ctx.send("✏️ 新しい回答を30秒以内に入力してね！")
-
-    def check(m):
-        return m.author == ctx.author and m.channel == ctx.channel
-
-    try:
-        msg = await ctx.bot.wait_for("message", timeout=30.0, check=check)
-        new_response = msg.content.strip()
-
-        # 上書き処理
-        rating = random.choice(ratings)
-        tag = random.choice(tags)
-        user_responses[user_id][today]["response"] = new_response
-        user_responses[user_id][today]["rating"] = rating
-        user_responses[user_id][today]["tag"] = tag
-
-        await ctx.send(f"✅ 回答を更新したよ！\n→ **{new_response}** {rating} {tag}")
-    except asyncio.TimeoutError:
-        await ctx.send(f"{ctx.author.mention} 時間切れ！もう一度 `/daily_edit` を試してね。")
-
 
 @bot.command()
 async def trade(ctx, target: discord.Member, *, item_name: str):
@@ -1007,6 +596,37 @@ SHOP_ITEMS = {
     "トライデント": 80,
 }
 
+# プレイヤーデータに「gold」を追加し、デフォルトは100
+def ensure_player_defaults(user_id):
+    defaults = {
+        "inventory": [],
+        "level": 1,
+        "exp": 0,
+        "hp": 100,
+        "max_hp": 100,
+        "weapon": "素手",
+        "armor": None,
+        "potions": 1,
+        "mode": "平和",
+        "alive": True,
+        "structures": [],
+        "gold": 100,
+        "pet": None,
+    }
+
+    if user_id not in player_data:
+        player_data[user_id] = defaults.copy()
+    else:
+        for key, value in defaults.items():
+            if key not in player_data[user_id]:
+                player_data[user_id][key] = value
+
+def find_user_id_by_name(name: str):
+    for uid, pdata in player_data.items():
+        if pdata.get("name") == name:
+            return uid
+    return None
+
 @bot.command()
 async def shop(ctx):
     shop_text = "**ショップ商品リスト**\n"
@@ -1100,62 +720,33 @@ async def pet(ctx):
 async def inventory(ctx):
     user_id = str(ctx.author.id)
 
-    # player_dataの存在チェック
-    if user_id not in player_data:
-        player_data[user_id] = {"inventory": []}
-
-    raw_inventory = player_data[user_id].get("inventory", [])
-    # 旧形式アイテムを変換
-    player_data[user_id]["inventory"] = convert_old_items(raw_inventory)
-
-    inv = player_data[user_id]["inventory"]
-    if not inv:
-        await ctx.send("あなたのインベントリは空です。まずは `!mine` や `!gachaMine` でアイテムを集めましょう！")
+    if user_id not in player_data or not player_data[user_id]["inventory"]:
+        await ctx.send("あなたのインベントリは空です。まずは `!mine` でアイテムを集めましょう！")
         return
 
-    # ここにインベントリ表示の処理などを書く
-    await ctx.send(f"あなたのインベントリ: {inv}")
+    inv = player_data[user_id]["inventory"]
 
+    # アイテム数を集計して [(item, count), ...] のリストに
+    counted = {}
+    for item in inv:
+        counted[item] = counted.get(item, 0) + 1
+    counted_items = [f"{item} x{count}" for item, count in counted.items()]
 
-    # 以下はレアリティごとに表示用の埋め込みとか続く感じですね
-
-
-    # レアリティの表示順
-    rarity_order = ["legendary", "epic", "rare", "uncommon", "common"]
-    rarity_labels = {
-        "legendary": "🌈伝説レア",
-        "epic": "💎超激レア",
-        "rare": "🔶激レア",
-        "uncommon": "🔷レア",
-        "common": "⚪ノーマル"
-    }
-
-    pages = []
+    # ページに分割（8件ずつ）
     items_per_page = 8
-    all_lines = []
-
-    for rarity in rarity_order:
-        if rarity not in grouped:
-            continue
-        lines = [f"__**{rarity_labels[rarity]}**__"]
-        for name, count in grouped[rarity].items():
-            lines.append(f"{name} x{count}")
-        all_lines.extend(lines)
-
-    # ページ分け
-    for i in range(0, len(all_lines), items_per_page):
-        chunk = all_lines[i:i + items_per_page]
+    pages = []
+    for i in range(0, len(counted_items), items_per_page):
+        chunk = counted_items[i:i + items_per_page]
         embed = discord.Embed(
             title=f"{ctx.author.display_name} のインベントリ 🧳",
             description="\n".join(chunk),
-            color=discord.Color.blue()
+            color=discord.Color.green()
         )
-        embed.set_footer(text=f"ページ {i // items_per_page + 1}/{(len(all_lines) + items_per_page - 1) // items_per_page}")
+        embed.set_footer(text=f"ページ {i // items_per_page + 1}/{(len(counted_items) + items_per_page - 1) // items_per_page}")
         pages.append(embed)
 
     view = PaginatorView(pages, ctx.author.id)
     await ctx.send(embed=pages[0], view=view)
-
 
 
 
@@ -1174,22 +765,19 @@ async def level(ctx):
 async def equip(ctx, *, item_name: str):
     user_id = str(ctx.author.id)
     if user_id not in player_data:
-        await ctx.send("まずは !mine でゲームを開始してください。")
+        await ctx.send("まずは `!mine` でゲームを開始してください。")
         return
-
     inv = player_data[user_id]["inventory"]
     if item_name not in inv:
         await ctx.send(f"{item_name} はインベントリに存在しません。")
         return
-
-    # 装備判定ロジック（修正版）
+    # 装備可能か判定（武器or盾だけ装備可能）
     if item_name in WEAPONS:
-        if WEAPONS[item_name]["defense"] > 0:
-            player_data[user_id]["armor"] = item_name
-            await ctx.send(f"{ctx.author.display_name} は {item_name} を装備しました（防御用）。")
-        else:
-            player_data[user_id]["weapon"] = item_name
-            await ctx.send(f"{ctx.author.display_name} は {item_name} を装備しました（攻撃用）。")
+        player_data[user_id]["weapon"] = item_name
+        await ctx.send(f"{ctx.author.display_name} は {item_name} を装備しました。")
+    elif item_name == "盾":
+        player_data[user_id]["armor"] = item_name
+        await ctx.send(f"{ctx.author.display_name} は 盾 を装備しました。")
     else:
         await ctx.send(f"{item_name} は装備できません。武器または盾のみ装備可能です。")
 
@@ -1437,9 +1025,6 @@ async def golem(ctx):
         "・`!register`：プレイヤー登録できるよ！\n\n"
         "・`!clock`：現在の時間が分かるよ!\n\n"
         "・`!tenki`：現在の天気が分かるよ!\n\n"
-        "・`!gachaMine`：１回だけガチャれるよ。\n\n"
-        "・`!gacha10`：10回ガチャれるよ\n\n"
-
         "ゲームの冒険を存分に楽しんでくださいね！"
     )
     await ctx.send(help_text)

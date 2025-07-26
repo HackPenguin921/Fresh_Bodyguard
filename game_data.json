@@ -2,175 +2,689 @@
   "player_data": {
     "1131750628457197718": {
       "inventory": [
-        "石",
-        "丸石",
-        "スイカ",
-        "焼き豚",
-        "エメラルド",
-        "パン",
-        "スイカ",
-        "レッドストーン",
-        "剣",
-        "木材",
-        "金",
-        "トライデント",
-        "石",
-        "鉄",
-        "ダイヤモンド",
-        "回復薬",
-        "ダイヤモンド",
-        "回復薬",
-        "回復薬",
-        "呪いの魔法",
-        "ダイヤモンド",
-        "TNT",
-        "木材",
-        "回復薬",
-        "レッドストーン",
-        "木材",
-        "丸石",
-        "クロスボウ",
-        "ケーキ",
-        "エメラルド",
-        "エメラルド",
-        "丸石",
-        "木材",
-        "鉄",
-        "丸石",
-        "鉄",
-        "ケーキ",
-        "剣",
-        "メイス",
-        "剣",
-        "木材",
-        "焼き豚",
-        "サイス",
-        "ダイヤモンド",
-        "呪いの魔法",
-        "トライデント",
-        "ゴールド",
-        "ゴールド",
-        "ゴールド",
-        "ゴールド",
-        "ゴールド",
-        "ダイヤモンド",
-        "呪いの魔法",
-        "回復薬",
-        "ダイヤモンド",
-        "ダイヤモンド",
-        "ケーキ",
-        "回復薬",
-        "ゴールド",
-        "ゴールド",
-        "ゴールド",
-        "ゴールド",
-        "ゴールド",
-        "回復薬",
-        "ダイヤモンド",
-        "回復薬",
-        "ダイヤモンド",
-        "呪いの魔法",
-        "ダイヤモンド",
-        "回復薬",
-        "ゴールド",
-        "ゴールド",
-        "ゴールド",
-        "ゴールド",
-        "ゴールド",
-        "ダイヤモンド",
-        "ダイヤモンド",
-        "ケーキ",
-        "ケーキ",
-        "ゴールド",
-        "ゴールド",
-        "ゴールド",
-        "ゴールド",
-        "ゴールド",
-        "TNT",
-        "ケーキ",
-        "トライデント",
-        "金",
-        "木材",
-        "スイカ",
-        "メイス",
-        "エメラルド",
-        "丸石",
-        "剣",
-        "パン",
-        "金",
-        "剣",
-        "レッドストーン",
-        "焼き豚",
-        "エメラルド",
-        "エメラルド",
-        "木材",
-        "スイカ",
-        "パン",
-        "スイカ",
-        "木材",
-        "スイカ",
-        "鉄",
-        "木材",
-        "金のリンゴ",
-        "レッドストーン",
-        "焼き豚",
-        "丸石",
-        "パン",
-        "パン",
-        "丸石",
-        "レッドストーン",
-        "パン",
-        "メイス",
-        "焼き豚",
-        "焼き豚",
-        "剣",
-        "金",
-        "丸石",
-        "スイカ",
-        "石",
-        "焼き豚",
-        "焼き豚",
-        "パン",
-        "鉄",
-        "木材",
-        "メイス",
-        "レッドストーン",
-        "丸石",
-        "スイカ",
-        "パン",
-        "ネザークォーツ",
-        "金",
-        "剣",
-        "木材",
-        "弓矢",
-        "スイカ",
-        "木材",
-        "剣",
-        "石",
-        "丸石",
-        "エメラルド",
-        "パン",
-        "回復薬",
-        "回復薬",
-        "盾",
-        "金",
-        "石",
-        "ダイヤモンド",
-        "スイカ",
-        "鉄",
-        "スイカ",
-        "トライデント",
-        "ダイヤモンド",
-        "焼き豚",
-        "盾",
-        "エメラルド",
-        "剣",
-        "鉄",
-        "パン",
-        "石"
+        {
+          "name": "石",
+          "rarity": "common"
+        },
+        {
+          "name": "丸石",
+          "rarity": "common"
+        },
+        {
+          "name": "スイカ",
+          "rarity": "common"
+        },
+        {
+          "name": "焼き豚",
+          "rarity": "common"
+        },
+        {
+          "name": "エメラルド",
+          "rarity": "common"
+        },
+        {
+          "name": "パン",
+          "rarity": "common"
+        },
+        {
+          "name": "スイカ",
+          "rarity": "common"
+        },
+        {
+          "name": "レッドストーン",
+          "rarity": "common"
+        },
+        {
+          "name": "剣",
+          "rarity": "common"
+        },
+        {
+          "name": "木材",
+          "rarity": "common"
+        },
+        {
+          "name": "金",
+          "rarity": "common"
+        },
+        {
+          "name": "トライデント",
+          "rarity": "common"
+        },
+        {
+          "name": "石",
+          "rarity": "common"
+        },
+        {
+          "name": "鉄",
+          "rarity": "common"
+        },
+        {
+          "name": "ダイヤモンド",
+          "rarity": "common"
+        },
+        {
+          "name": "回復薬",
+          "rarity": "common"
+        },
+        {
+          "name": "ダイヤモンド",
+          "rarity": "common"
+        },
+        {
+          "name": "回復薬",
+          "rarity": "common"
+        },
+        {
+          "name": "回復薬",
+          "rarity": "common"
+        },
+        {
+          "name": "呪いの魔法",
+          "rarity": "common"
+        },
+        {
+          "name": "ダイヤモンド",
+          "rarity": "common"
+        },
+        {
+          "name": "TNT",
+          "rarity": "common"
+        },
+        {
+          "name": "木材",
+          "rarity": "common"
+        },
+        {
+          "name": "回復薬",
+          "rarity": "common"
+        },
+        {
+          "name": "レッドストーン",
+          "rarity": "common"
+        },
+        {
+          "name": "木材",
+          "rarity": "common"
+        },
+        {
+          "name": "丸石",
+          "rarity": "common"
+        },
+        {
+          "name": "クロスボウ",
+          "rarity": "common"
+        },
+        {
+          "name": "ケーキ",
+          "rarity": "common"
+        },
+        {
+          "name": "エメラルド",
+          "rarity": "common"
+        },
+        {
+          "name": "エメラルド",
+          "rarity": "common"
+        },
+        {
+          "name": "丸石",
+          "rarity": "common"
+        },
+        {
+          "name": "木材",
+          "rarity": "common"
+        },
+        {
+          "name": "鉄",
+          "rarity": "common"
+        },
+        {
+          "name": "丸石",
+          "rarity": "common"
+        },
+        {
+          "name": "鉄",
+          "rarity": "common"
+        },
+        {
+          "name": "ケーキ",
+          "rarity": "common"
+        },
+        {
+          "name": "剣",
+          "rarity": "common"
+        },
+        {
+          "name": "メイス",
+          "rarity": "common"
+        },
+        {
+          "name": "剣",
+          "rarity": "common"
+        },
+        {
+          "name": "木材",
+          "rarity": "common"
+        },
+        {
+          "name": "焼き豚",
+          "rarity": "common"
+        },
+        {
+          "name": "サイス",
+          "rarity": "common"
+        },
+        {
+          "name": "ダイヤモンド",
+          "rarity": "common"
+        },
+        {
+          "name": "呪いの魔法",
+          "rarity": "common"
+        },
+        {
+          "name": "トライデント",
+          "rarity": "common"
+        },
+        {
+          "name": "ゴールド",
+          "rarity": "common"
+        },
+        {
+          "name": "ゴールド",
+          "rarity": "common"
+        },
+        {
+          "name": "ゴールド",
+          "rarity": "common"
+        },
+        {
+          "name": "ゴールド",
+          "rarity": "common"
+        },
+        {
+          "name": "ゴールド",
+          "rarity": "common"
+        },
+        {
+          "name": "ダイヤモンド",
+          "rarity": "common"
+        },
+        {
+          "name": "呪いの魔法",
+          "rarity": "common"
+        },
+        {
+          "name": "回復薬",
+          "rarity": "common"
+        },
+        {
+          "name": "ダイヤモンド",
+          "rarity": "common"
+        },
+        {
+          "name": "ダイヤモンド",
+          "rarity": "common"
+        },
+        {
+          "name": "ケーキ",
+          "rarity": "common"
+        },
+        {
+          "name": "回復薬",
+          "rarity": "common"
+        },
+        {
+          "name": "ゴールド",
+          "rarity": "common"
+        },
+        {
+          "name": "ゴールド",
+          "rarity": "common"
+        },
+        {
+          "name": "ゴールド",
+          "rarity": "common"
+        },
+        {
+          "name": "ゴールド",
+          "rarity": "common"
+        },
+        {
+          "name": "ゴールド",
+          "rarity": "common"
+        },
+        {
+          "name": "回復薬",
+          "rarity": "common"
+        },
+        {
+          "name": "ダイヤモンド",
+          "rarity": "common"
+        },
+        {
+          "name": "回復薬",
+          "rarity": "common"
+        },
+        {
+          "name": "ダイヤモンド",
+          "rarity": "common"
+        },
+        {
+          "name": "呪いの魔法",
+          "rarity": "common"
+        },
+        {
+          "name": "ダイヤモンド",
+          "rarity": "common"
+        },
+        {
+          "name": "回復薬",
+          "rarity": "common"
+        },
+        {
+          "name": "ゴールド",
+          "rarity": "common"
+        },
+        {
+          "name": "ゴールド",
+          "rarity": "common"
+        },
+        {
+          "name": "ゴールド",
+          "rarity": "common"
+        },
+        {
+          "name": "ゴールド",
+          "rarity": "common"
+        },
+        {
+          "name": "ゴールド",
+          "rarity": "common"
+        },
+        {
+          "name": "ダイヤモンド",
+          "rarity": "common"
+        },
+        {
+          "name": "ダイヤモンド",
+          "rarity": "common"
+        },
+        {
+          "name": "ケーキ",
+          "rarity": "common"
+        },
+        {
+          "name": "ケーキ",
+          "rarity": "common"
+        },
+        {
+          "name": "ゴールド",
+          "rarity": "common"
+        },
+        {
+          "name": "ゴールド",
+          "rarity": "common"
+        },
+        {
+          "name": "ゴールド",
+          "rarity": "common"
+        },
+        {
+          "name": "ゴールド",
+          "rarity": "common"
+        },
+        {
+          "name": "ゴールド",
+          "rarity": "common"
+        },
+        {
+          "name": "TNT",
+          "rarity": "common"
+        },
+        {
+          "name": "ケーキ",
+          "rarity": "common"
+        },
+        {
+          "name": "トライデント",
+          "rarity": "common"
+        },
+        {
+          "name": "金",
+          "rarity": "common"
+        },
+        {
+          "name": "木材",
+          "rarity": "common"
+        },
+        {
+          "name": "スイカ",
+          "rarity": "common"
+        },
+        {
+          "name": "メイス",
+          "rarity": "common"
+        },
+        {
+          "name": "エメラルド",
+          "rarity": "common"
+        },
+        {
+          "name": "丸石",
+          "rarity": "common"
+        },
+        {
+          "name": "剣",
+          "rarity": "common"
+        },
+        {
+          "name": "パン",
+          "rarity": "common"
+        },
+        {
+          "name": "金",
+          "rarity": "common"
+        },
+        {
+          "name": "剣",
+          "rarity": "common"
+        },
+        {
+          "name": "レッドストーン",
+          "rarity": "common"
+        },
+        {
+          "name": "焼き豚",
+          "rarity": "common"
+        },
+        {
+          "name": "エメラルド",
+          "rarity": "common"
+        },
+        {
+          "name": "エメラルド",
+          "rarity": "common"
+        },
+        {
+          "name": "木材",
+          "rarity": "common"
+        },
+        {
+          "name": "スイカ",
+          "rarity": "common"
+        },
+        {
+          "name": "パン",
+          "rarity": "common"
+        },
+        {
+          "name": "スイカ",
+          "rarity": "common"
+        },
+        {
+          "name": "木材",
+          "rarity": "common"
+        },
+        {
+          "name": "スイカ",
+          "rarity": "common"
+        },
+        {
+          "name": "鉄",
+          "rarity": "common"
+        },
+        {
+          "name": "木材",
+          "rarity": "common"
+        },
+        {
+          "name": "金のリンゴ",
+          "rarity": "common"
+        },
+        {
+          "name": "レッドストーン",
+          "rarity": "common"
+        },
+        {
+          "name": "焼き豚",
+          "rarity": "common"
+        },
+        {
+          "name": "丸石",
+          "rarity": "common"
+        },
+        {
+          "name": "パン",
+          "rarity": "common"
+        },
+        {
+          "name": "パン",
+          "rarity": "common"
+        },
+        {
+          "name": "丸石",
+          "rarity": "common"
+        },
+        {
+          "name": "レッドストーン",
+          "rarity": "common"
+        },
+        {
+          "name": "パン",
+          "rarity": "common"
+        },
+        {
+          "name": "メイス",
+          "rarity": "common"
+        },
+        {
+          "name": "焼き豚",
+          "rarity": "common"
+        },
+        {
+          "name": "焼き豚",
+          "rarity": "common"
+        },
+        {
+          "name": "剣",
+          "rarity": "common"
+        },
+        {
+          "name": "金",
+          "rarity": "common"
+        },
+        {
+          "name": "丸石",
+          "rarity": "common"
+        },
+        {
+          "name": "スイカ",
+          "rarity": "common"
+        },
+        {
+          "name": "石",
+          "rarity": "common"
+        },
+        {
+          "name": "焼き豚",
+          "rarity": "common"
+        },
+        {
+          "name": "焼き豚",
+          "rarity": "common"
+        },
+        {
+          "name": "パン",
+          "rarity": "common"
+        },
+        {
+          "name": "鉄",
+          "rarity": "common"
+        },
+        {
+          "name": "木材",
+          "rarity": "common"
+        },
+        {
+          "name": "メイス",
+          "rarity": "common"
+        },
+        {
+          "name": "レッドストーン",
+          "rarity": "common"
+        },
+        {
+          "name": "丸石",
+          "rarity": "common"
+        },
+        {
+          "name": "スイカ",
+          "rarity": "common"
+        },
+        {
+          "name": "パン",
+          "rarity": "common"
+        },
+        {
+          "name": "ネザークォーツ",
+          "rarity": "common"
+        },
+        {
+          "name": "金",
+          "rarity": "common"
+        },
+        {
+          "name": "剣",
+          "rarity": "common"
+        },
+        {
+          "name": "木材",
+          "rarity": "common"
+        },
+        {
+          "name": "弓矢",
+          "rarity": "common"
+        },
+        {
+          "name": "スイカ",
+          "rarity": "common"
+        },
+        {
+          "name": "木材",
+          "rarity": "common"
+        },
+        {
+          "name": "剣",
+          "rarity": "common"
+        },
+        {
+          "name": "石",
+          "rarity": "common"
+        },
+        {
+          "name": "丸石",
+          "rarity": "common"
+        },
+        {
+          "name": "エメラルド",
+          "rarity": "common"
+        },
+        {
+          "name": "パン",
+          "rarity": "common"
+        },
+        {
+          "name": "回復薬",
+          "rarity": "common"
+        },
+        {
+          "name": "回復薬",
+          "rarity": "common"
+        },
+        {
+          "name": "盾",
+          "rarity": "common"
+        },
+        {
+          "name": "金",
+          "rarity": "common"
+        },
+        {
+          "name": "石",
+          "rarity": "common"
+        },
+        {
+          "name": "ダイヤモンド",
+          "rarity": "common"
+        },
+        {
+          "name": "スイカ",
+          "rarity": "common"
+        },
+        {
+          "name": "鉄",
+          "rarity": "common"
+        },
+        {
+          "name": "スイカ",
+          "rarity": "common"
+        },
+        {
+          "name": "トライデント",
+          "rarity": "common"
+        },
+        {
+          "name": "ダイヤモンド",
+          "rarity": "common"
+        },
+        {
+          "name": "焼き豚",
+          "rarity": "common"
+        },
+        {
+          "name": "盾",
+          "rarity": "common"
+        },
+        {
+          "name": "エメラルド",
+          "rarity": "common"
+        },
+        {
+          "name": "剣",
+          "rarity": "common"
+        },
+        {
+          "name": "鉄",
+          "rarity": "common"
+        },
+        {
+          "name": "パン",
+          "rarity": "common"
+        },
+        {
+          "name": "石",
+          "rarity": "common"
+        },
+        {
+          "name": "クロスボウ",
+          "rarity": "common"
+        },
+        {
+          "name": "金",
+          "rarity": "common"
+        },
+        {
+          "name": "金",
+          "rarity": "common"
+        },
+        {
+          "name": "木材",
+          "rarity": "common"
+        }
       ],
       "level": 4,
-      "exp": 52,
+      "exp": 78,
       "hp": 100,
       "max_hp": 100,
       "weapon": "呪いの魔法",
@@ -183,8 +697,9 @@
       "pet": {
         "name": "ゴーレム",
         "level": 2,
-        "exp": 10
-      }
+        "exp": 20
+      },
+      "coins": 42
     },
     "1035923069702778991": {
       "inventory": [
@@ -1281,7 +1796,8 @@
       "alive": false,
       "structures": [],
       "gold": 100,
-      "pet": null
+      "pet": null,
+      "coins": 0
     },
     "968362492038357002": {
       "inventory": [
@@ -1342,6 +1858,50 @@
       "structures": [],
       "gold": 100,
       "pet": null
+    },
+    "1369216930489307137": {
+      "inventory": [
+        "スイカ",
+        "木材",
+        "鉄"
+      ],
+      "level": 1,
+      "exp": 26,
+      "hp": 100,
+      "max_hp": 100,
+      "weapon": "素手",
+      "armor": null,
+      "potions": 1,
+      "mode": "平和",
+      "alive": true,
+      "structures": [],
+      "coins": 12
+    },
+    "1133001546385346611": {
+      "inventory": [
+        "木材",
+        "ケーキ",
+        "パン",
+        "パン",
+        "パン",
+        "金",
+        "パン",
+        "丸石",
+        "丸石",
+        "パン",
+        "ハンマー"
+      ],
+      "level": 1,
+      "exp": 26,
+      "hp": 100,
+      "max_hp": 100,
+      "weapon": "素手",
+      "armor": null,
+      "potions": 1,
+      "mode": "平和",
+      "alive": true,
+      "structures": [],
+      "coins": 106
     }
   }
 }

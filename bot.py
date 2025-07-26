@@ -82,6 +82,78 @@ PLAYER = "⭕"
 CPU = "❌"
 EMPTY = "⬜"
 
+
+# --- ファイル読み込み ---
+if os.path.exists("user_data.json"):
+    with open("user_data.json", "r", encoding="utf-8") as f:
+        user_data = json.load(f)
+else:
+    user_data = {}
+
+if os.path.exists("gacha_items.json"):
+    with open("gacha_items.json", "r", encoding="utf-8") as f:
+        gacha_items = json.load(f)
+else:
+    gacha_items = {}
+
+# --- レアリティ出現確率 ---
+RARITY_RATES = {
+    "伝説レア": 3,
+    "超激レア": 7,
+    "激レア": 15,
+    "レア": 25,
+    "ノーマル": 50
+}
+# 種類別の素材データ
+item_types = ["剣", "弓", "槍", "鎧", "帽子", "ポーション", "果物", "動物", "召喚獣", "本", "装飾品", "機械"]
+adjectives = ["炎の", "氷の", "神聖な", "呪われた", "暗黒の", "輝く", "幻の", "ミニ", "巨大な", "伝説の"]
+suffixes = ["ブレード", "ハンマー", "ロッド", "アーマー", "クラウン", "エッグ", "エリクサー", "ソウル", "コア", "ボックス"]
+
+# --- レアリティ絵文字 ---
+RARITY_EMOJIS = {
+    "伝説レア": "🟨",
+    "超激レア": "🟥",
+    "激レア": "🟪",
+    "レア": "🟦",
+    "ノーマル": "⚪️"
+}
+
+def choose_rarity():
+    rarities = [
+        ("legendary", 1),
+        ("epic", 4),
+        ("rare", 15),
+        ("uncommon", 30),
+        ("common", 50),
+    ]
+
+    total = sum(prob for _, prob in rarities)
+    pick = random.uniform(0, total)
+    current = 0
+    for rarity, prob in rarities:
+        current += prob
+        if pick <= current:
+            return rarity
+
+
+# 100個のアイテムを生成
+items = []
+for i in range(100):
+    name = f"{random.choice(adjectives)}{random.choice(item_types)}{random.choice(suffixes)}"
+    rarity = choose_rarity()
+    item = {
+        "id": i + 1,
+        "name": name,
+        "rarity": rarity
+    }
+    items.append(item)
+
+# JSONに保存
+with open("gacha_items.json", "w", encoding="utf-8") as f:
+    json.dump(items, f, ensure_ascii=False, indent=2)
+
+print("✅ gacha_items.json を生成しました（100アイテム）")
+
 DATA_FILE = "player_data.json"
 player_data = defaultdict(lambda: {
     "inventory": [],
@@ -109,6 +181,7 @@ def ensure_player_defaults(user_id):
         "mode": "平和",
         "alive": True,
         "structures": [],
+        "coins": 0,
     }
 
     if user_id not in player_data:
@@ -117,6 +190,45 @@ def ensure_player_defaults(user_id):
         for key, value in defaults.items():
             if key not in player_data[user_id]:
                 player_data[user_id][key] = value
+
+# --- 抽選関数 ---
+def draw_item():
+    rarities = list(RARITY_RATES.keys())
+    weights = list(RARITY_RATES.values())
+    selected_rarity = random.choices(rarities, weights=weights)[0]
+    item_list = [item for item, r in gacha_items.items() if r == selected_rarity]
+    item = random.choice(item_list)
+    return item, selected_rarity
+
+# --- コインチェック ---
+def get_user_coins(user_id):
+    return user_data.get(str(user_id), {}).get("coins", 0)
+
+def modify_user_coins(user_id, delta):
+    uid = str(user_id)
+    if uid not in user_data:
+        user_data[uid] = {"coins": 0, "items": []}
+    user_data[uid]["coins"] += delta
+    with open("user_data.json", "w", encoding="utf-8") as f:
+        json.dump(user_data, f, ensure_ascii=False, indent=2)
+
+# --- 所持アイテム保存 ---
+def add_user_item(user_id, item):
+    uid = str(user_id)
+    if uid not in user_data:
+        user_data[uid] = {"coins": 0, "items": []}
+    user_data[uid]["items"].append(item)
+    with open("user_data.json", "w", encoding="utf-8") as f:
+        json.dump(user_data, f, ensure_ascii=False, indent=2)
+
+# --- ガチャView ---
+class GachaView(View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+        self.add_item(Button(label="1回ガチャ", style=discord.ButtonStyle.primary, custom_id="gacha1"))
+        self.add_item(Button(label="10連ガチャ", style=discord.ButtonStyle.success, custom_id="gacha10"))
+
 
 # CPU AIロジック
 def get_best_move(board: list[str]) -> int:
@@ -200,6 +312,28 @@ class TicTacToeGame(View):
         for btn in self.buttons:
             btn.disabled = True
         await interaction.response.edit_message(content=end_message, view=self)
+
+
+def convert_old_items(inventory):
+    converted = []
+    for item in inventory:
+        if isinstance(item, str):
+            converted.append({
+                "name": item,
+                "rarity": "common"
+            })
+        elif isinstance(item, dict):
+            converted.append(item)
+    return converted
+
+# 結果を確認
+print(player_inventory)
+
+user_id = str(ctx.author.id)
+raw_inventory = player_data[user_id].get("inventory", [])
+
+# 旧形式の可能性を考慮して変換
+player_data[user_id]["inventory"] = convert_old_items(raw_inventory)
 
 WEAPONS = {
     "素手": {"attack": (5, 10), "defense": 0},
@@ -413,6 +547,7 @@ async def mine(ctx):
     user_id = str(ctx.author.id)
     ensure_player_defaults(user_id)
 
+    # アイテム抽選
     weighted_items = (
         RARITY["common"] * 50 +
         RARITY["uncommon"] * 30 +
@@ -423,18 +558,26 @@ async def mine(ctx):
     found_item = random.choice(weighted_items)
     player_data[user_id]["inventory"].append(found_item)
 
+    # 経験値
     gained_xp = random.randint(1, 5)
     player_data[user_id]["exp"] += gained_xp
 
+    # コイン獲得（5〜15枚）
+    gained_coins = random.randint(5, 15)
+    player_data[user_id]["coins"] += gained_coins
+
+    # レベルアップ処理
     while player_data[user_id]["exp"] >= 100:
         player_data[user_id]["exp"] -= 100
         player_data[user_id]["level"] += 1
         await ctx.send(f"🎉 {ctx.author.display_name} さん、レベルアップ！ 現在レベル {player_data[user_id]['level']} です！")
 
-    # 変更を保存
     save_data()
 
-    await ctx.send(f"{ctx.author.display_name} は {found_item} を採掘しました！（経験値 +{gained_xp}）")
+    await ctx.send(
+        f"⛏️ {ctx.author.display_name} は {found_item} を採掘！（経験値 +{gained_xp}, コイン +{gained_coins}）"
+    )
+
 
 @bot.command(name="fake")
 async def fake(ctx, *, message: str):
@@ -446,6 +589,45 @@ async def fake(ctx, *, message: str):
 async def start_marubatu(ctx):
     game = TicTacToeGame()
     await ctx.send("⭕ あなた vs ❌ CPU の ○×ゲーム！", view=game)
+
+@bot.event
+async def on_interaction(interaction):
+    if interaction.type == discord.InteractionType.component:
+        user = interaction.user
+        uid = str(user.id)
+        if uid not in user_data:
+            user_data[uid] = {"coins": 1500, "items": []}  # 初期コイン
+
+        if interaction.data["custom_id"] == "gacha1":
+            if get_user_coins(uid) < 150:
+                await interaction.response.send_message("💸 コインが足りません！（150枚必要）", ephemeral=True)
+                return
+            modify_user_coins(uid, -150)
+            item, rarity = draw_item()
+            add_user_item(uid, item)
+            emoji = RARITY_EMOJIS[rarity]
+            await interaction.response.send_message(f"{emoji}【{rarity}】『{item}』をゲット！")
+
+        elif interaction.data["custom_id"] == "gacha10":
+            if get_user_coins(uid) < 1500:
+                await interaction.response.send_message("💸 コインが足りません！（1500枚必要）", ephemeral=True)
+                return
+            modify_user_coins(uid, -1500)
+            result_dict = {r: [] for r in RARITY_RATES}
+            for _ in range(10):
+                item, rarity = draw_item()
+                add_user_item(uid, item)
+                result_dict[rarity].append(item)
+
+            result_msg = "🎉 10連ガチャ結果 🎉\n"
+            for r in RARITY_RATES:
+                items = result_dict[r]
+                if items:
+                    emoji = RARITY_EMOJIS[r]
+                    result_msg += f"{emoji}【{r}】\n- " + "\n- ".join(items) + "\n"
+
+            await interaction.response.send_message(result_msg)
+
 
 @bot.command()
 async def spin(ctx):
@@ -883,32 +1065,62 @@ async def inventory(ctx):
     user_id = str(ctx.author.id)
 
     if user_id not in player_data or not player_data[user_id]["inventory"]:
-        await ctx.send("あなたのインベントリは空です。まずは `!mine` でアイテムを集めましょう！")
+        await ctx.send("あなたのインベントリは空です。まずは `!mine` や `!gachaMine` でアイテムを集めましょう！")
         return
+
+    # ここで変換（旧形式対応）
+    player_data[user_id]["inventory"] = convert_old_items(player_data[user_id]["inventory"])
 
     inv = player_data[user_id]["inventory"]
 
-    # アイテム数を集計して [(item, count), ...] のリストに
-    counted = {}
+    # レアリティごとに分類してカウント
+    grouped = {}
     for item in inv:
-        counted[item] = counted.get(item, 0) + 1
-    counted_items = [f"{item} x{count}" for item, count in counted.items()]
+        rarity = item.get("rarity", "common")
+        name = item["name"]
+        if rarity not in grouped:
+            grouped[rarity] = {}
+        grouped[rarity][name] = grouped[rarity].get(name, 0) + 1
 
-    # ページに分割（8件ずつ）
-    items_per_page = 8
+    # 以下はレアリティごとに表示用の埋め込みとか続く感じですね
+
+
+    # レアリティの表示順
+    rarity_order = ["legendary", "epic", "rare", "uncommon", "common"]
+    rarity_labels = {
+        "legendary": "🌈伝説レア",
+        "epic": "💎超激レア",
+        "rare": "🔶激レア",
+        "uncommon": "🔷レア",
+        "common": "⚪ノーマル"
+    }
+
     pages = []
-    for i in range(0, len(counted_items), items_per_page):
-        chunk = counted_items[i:i + items_per_page]
+    items_per_page = 8
+    all_lines = []
+
+    for rarity in rarity_order:
+        if rarity not in grouped:
+            continue
+        lines = [f"__**{rarity_labels[rarity]}**__"]
+        for name, count in grouped[rarity].items():
+            lines.append(f"{name} x{count}")
+        all_lines.extend(lines)
+
+    # ページ分け
+    for i in range(0, len(all_lines), items_per_page):
+        chunk = all_lines[i:i + items_per_page]
         embed = discord.Embed(
             title=f"{ctx.author.display_name} のインベントリ 🧳",
             description="\n".join(chunk),
-            color=discord.Color.green()
+            color=discord.Color.blue()
         )
-        embed.set_footer(text=f"ページ {i // items_per_page + 1}/{(len(counted_items) + items_per_page - 1) // items_per_page}")
+        embed.set_footer(text=f"ページ {i // items_per_page + 1}/{(len(all_lines) + items_per_page - 1) // items_per_page}")
         pages.append(embed)
 
     view = PaginatorView(pages, ctx.author.id)
     await ctx.send(embed=pages[0], view=view)
+
 
 
 

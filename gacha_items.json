@@ -1,0 +1,502 @@
+[
+  {
+    "id": 1,
+    "name": "伝説の果物ハンマー",
+    "rarity": "uncommon"
+  },
+  {
+    "id": 2,
+    "name": "巨大な装飾品ブレード",
+    "rarity": "common"
+  },
+  {
+    "id": 3,
+    "name": "伝説の本エリクサー",
+    "rarity": "common"
+  },
+  {
+    "id": 4,
+    "name": "暗黒の果物アーマー",
+    "rarity": "uncommon"
+  },
+  {
+    "id": 5,
+    "name": "炎のポーションロッド",
+    "rarity": "uncommon"
+  },
+  {
+    "id": 6,
+    "name": "神聖な鎧エッグ",
+    "rarity": "common"
+  },
+  {
+    "id": 7,
+    "name": "炎の本エリクサー",
+    "rarity": "rare"
+  },
+  {
+    "id": 8,
+    "name": "巨大な果物エッグ",
+    "rarity": "uncommon"
+  },
+  {
+    "id": 9,
+    "name": "氷の弓ボックス",
+    "rarity": "common"
+  },
+  {
+    "id": 10,
+    "name": "炎の鎧ロッド",
+    "rarity": "common"
+  },
+  {
+    "id": 11,
+    "name": "伝説の本ロッド",
+    "rarity": "common"
+  },
+  {
+    "id": 12,
+    "name": "ミニ槍エッグ",
+    "rarity": "common"
+  },
+  {
+    "id": 13,
+    "name": "炎の装飾品コア",
+    "rarity": "common"
+  },
+  {
+    "id": 14,
+    "name": "伝説の剣エリクサー",
+    "rarity": "common"
+  },
+  {
+    "id": 15,
+    "name": "輝く機械ロッド",
+    "rarity": "uncommon"
+  },
+  {
+    "id": 16,
+    "name": "伝説の帽子クラウン",
+    "rarity": "uncommon"
+  },
+  {
+    "id": 17,
+    "name": "神聖な剣ソウル",
+    "rarity": "uncommon"
+  },
+  {
+    "id": 18,
+    "name": "炎の装飾品ハンマー",
+    "rarity": "uncommon"
+  },
+  {
+    "id": 19,
+    "name": "伝説の弓ソウル",
+    "rarity": "uncommon"
+  },
+  {
+    "id": 20,
+    "name": "神聖な鎧ソウル",
+    "rarity": "uncommon"
+  },
+  {
+    "id": 21,
+    "name": "炎のポーションハンマー",
+    "rarity": "common"
+  },
+  {
+    "id": 22,
+    "name": "幻のポーションエリクサー",
+    "rarity": "uncommon"
+  },
+  {
+    "id": 23,
+    "name": "呪われた装飾品ロッド",
+    "rarity": "rare"
+  },
+  {
+    "id": 24,
+    "name": "神聖な機械コア",
+    "rarity": "legendary"
+  },
+  {
+    "id": 25,
+    "name": "神聖な本アーマー",
+    "rarity": "common"
+  },
+  {
+    "id": 26,
+    "name": "神聖な槍コア",
+    "rarity": "rare"
+  },
+  {
+    "id": 27,
+    "name": "伝説の剣ハンマー",
+    "rarity": "uncommon"
+  },
+  {
+    "id": 28,
+    "name": "輝く機械ボックス",
+    "rarity": "common"
+  },
+  {
+    "id": 29,
+    "name": "幻の槍コア",
+    "rarity": "common"
+  },
+  {
+    "id": 30,
+    "name": "神聖な機械エリクサー",
+    "rarity": "common"
+  },
+  {
+    "id": 31,
+    "name": "呪われたポーションコア",
+    "rarity": "common"
+  },
+  {
+    "id": 32,
+    "name": "氷の鎧アーマー",
+    "rarity": "uncommon"
+  },
+  {
+    "id": 33,
+    "name": "伝説の槍コア",
+    "rarity": "common"
+  },
+  {
+    "id": 34,
+    "name": "氷の機械エッグ",
+    "rarity": "common"
+  },
+  {
+    "id": 35,
+    "name": "幻の鎧ボックス",
+    "rarity": "common"
+  },
+  {
+    "id": 36,
+    "name": "幻の動物クラウン",
+    "rarity": "legendary"
+  },
+  {
+    "id": 37,
+    "name": "伝説の動物ソウル",
+    "rarity": "uncommon"
+  },
+  {
+    "id": 38,
+    "name": "神聖な槍ボックス",
+    "rarity": "uncommon"
+  },
+  {
+    "id": 39,
+    "name": "暗黒の本ソウル",
+    "rarity": "uncommon"
+  },
+  {
+    "id": 40,
+    "name": "幻のポーションハンマー",
+    "rarity": "common"
+  },
+  {
+    "id": 41,
+    "name": "ミニ剣コア",
+    "rarity": "common"
+  },
+  {
+    "id": 42,
+    "name": "幻のポーションコア",
+    "rarity": "common"
+  },
+  {
+    "id": 43,
+    "name": "氷の機械アーマー",
+    "rarity": "common"
+  },
+  {
+    "id": 44,
+    "name": "炎の装飾品ブレード",
+    "rarity": "common"
+  },
+  {
+    "id": 45,
+    "name": "呪われた帽子ボックス",
+    "rarity": "common"
+  },
+  {
+    "id": 46,
+    "name": "呪われた鎧エリクサー",
+    "rarity": "rare"
+  },
+  {
+    "id": 47,
+    "name": "輝く召喚獣ブレード",
+    "rarity": "common"
+  },
+  {
+    "id": 48,
+    "name": "暗黒の動物エリクサー",
+    "rarity": "common"
+  },
+  {
+    "id": 49,
+    "name": "伝説の召喚獣ハンマー",
+    "rarity": "uncommon"
+  },
+  {
+    "id": 50,
+    "name": "神聖な装飾品エリクサー",
+    "rarity": "common"
+  },
+  {
+    "id": 51,
+    "name": "暗黒の槍クラウン",
+    "rarity": "rare"
+  },
+  {
+    "id": 52,
+    "name": "神聖なポーションブレード",
+    "rarity": "common"
+  },
+  {
+    "id": 53,
+    "name": "幻の剣ロッド",
+    "rarity": "common"
+  },
+  {
+    "id": 54,
+    "name": "暗黒の動物ロッド",
+    "rarity": "common"
+  },
+  {
+    "id": 55,
+    "name": "炎の果物ボックス",
+    "rarity": "uncommon"
+  },
+  {
+    "id": 56,
+    "name": "神聖な剣コア",
+    "rarity": "common"
+  },
+  {
+    "id": 57,
+    "name": "暗黒の装飾品ハンマー",
+    "rarity": "uncommon"
+  },
+  {
+    "id": 58,
+    "name": "神聖な本エッグ",
+    "rarity": "common"
+  },
+  {
+    "id": 59,
+    "name": "氷の槍エッグ",
+    "rarity": "uncommon"
+  },
+  {
+    "id": 60,
+    "name": "幻の本アーマー",
+    "rarity": "common"
+  },
+  {
+    "id": 61,
+    "name": "巨大な動物ロッド",
+    "rarity": "common"
+  },
+  {
+    "id": 62,
+    "name": "呪われた装飾品コア",
+    "rarity": "common"
+  },
+  {
+    "id": 63,
+    "name": "炎の召喚獣ボックス",
+    "rarity": "common"
+  },
+  {
+    "id": 64,
+    "name": "呪われた帽子エリクサー",
+    "rarity": "rare"
+  },
+  {
+    "id": 65,
+    "name": "炎のポーションエッグ",
+    "rarity": "rare"
+  },
+  {
+    "id": 66,
+    "name": "輝く本ボックス",
+    "rarity": "uncommon"
+  },
+  {
+    "id": 67,
+    "name": "氷の弓エッグ",
+    "rarity": "uncommon"
+  },
+  {
+    "id": 68,
+    "name": "氷の帽子エッグ",
+    "rarity": "common"
+  },
+  {
+    "id": 69,
+    "name": "炎の帽子アーマー",
+    "rarity": "common"
+  },
+  {
+    "id": 70,
+    "name": "呪われた鎧ロッド",
+    "rarity": "uncommon"
+  },
+  {
+    "id": 71,
+    "name": "神聖な弓ソウル",
+    "rarity": "uncommon"
+  },
+  {
+    "id": 72,
+    "name": "炎の弓コア",
+    "rarity": "common"
+  },
+  {
+    "id": 73,
+    "name": "炎の本ハンマー",
+    "rarity": "common"
+  },
+  {
+    "id": 74,
+    "name": "呪われた本クラウン",
+    "rarity": "uncommon"
+  },
+  {
+    "id": 75,
+    "name": "ミニ機械ハンマー",
+    "rarity": "epic"
+  },
+  {
+    "id": 76,
+    "name": "呪われた動物ブレード",
+    "rarity": "common"
+  },
+  {
+    "id": 77,
+    "name": "巨大な帽子クラウン",
+    "rarity": "rare"
+  },
+  {
+    "id": 78,
+    "name": "幻の果物ブレード",
+    "rarity": "rare"
+  },
+  {
+    "id": 79,
+    "name": "暗黒の本エッグ",
+    "rarity": "uncommon"
+  },
+  {
+    "id": 80,
+    "name": "炎の剣ソウル",
+    "rarity": "common"
+  },
+  {
+    "id": 81,
+    "name": "伝説の鎧クラウン",
+    "rarity": "uncommon"
+  },
+  {
+    "id": 82,
+    "name": "暗黒の装飾品エッグ",
+    "rarity": "common"
+  },
+  {
+    "id": 83,
+    "name": "呪われた機械エッグ",
+    "rarity": "common"
+  },
+  {
+    "id": 84,
+    "name": "氷の弓ブレード",
+    "rarity": "rare"
+  },
+  {
+    "id": 85,
+    "name": "ミニ弓ソウル",
+    "rarity": "common"
+  },
+  {
+    "id": 86,
+    "name": "炎の動物ボックス",
+    "rarity": "uncommon"
+  },
+  {
+    "id": 87,
+    "name": "巨大な装飾品ボックス",
+    "rarity": "uncommon"
+  },
+  {
+    "id": 88,
+    "name": "呪われた鎧コア",
+    "rarity": "common"
+  },
+  {
+    "id": 89,
+    "name": "輝く槍コア",
+    "rarity": "common"
+  },
+  {
+    "id": 90,
+    "name": "呪われた装飾品ブレード",
+    "rarity": "common"
+  },
+  {
+    "id": 91,
+    "name": "炎の帽子ブレード",
+    "rarity": "uncommon"
+  },
+  {
+    "id": 92,
+    "name": "炎の弓アーマー",
+    "rarity": "common"
+  },
+  {
+    "id": 93,
+    "name": "神聖な動物ブレード",
+    "rarity": "common"
+  },
+  {
+    "id": 94,
+    "name": "伝説の動物エッグ",
+    "rarity": "rare"
+  },
+  {
+    "id": 95,
+    "name": "巨大な機械アーマー",
+    "rarity": "common"
+  },
+  {
+    "id": 96,
+    "name": "輝く装飾品アーマー",
+    "rarity": "common"
+  },
+  {
+    "id": 97,
+    "name": "伝説の果物ボックス",
+    "rarity": "common"
+  },
+  {
+    "id": 98,
+    "name": "幻の召喚獣ロッド",
+    "rarity": "uncommon"
+  },
+  {
+    "id": 99,
+    "name": "幻の弓ソウル",
+    "rarity": "rare"
+  },
+  {
+    "id": 100,
+    "name": "伝説の槍クラウン",
+    "rarity": "uncommon"
+  }
+]

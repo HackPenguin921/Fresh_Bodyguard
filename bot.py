@@ -98,6 +98,22 @@ if os.path.exists("gacha_items.json"):
 else:
     gacha_items = {}
 
+    user_coins = defaultdict(int)
+user_items = defaultdict(list)
+
+# ガチャアイテムリスト（名前と出現率）
+items = [
+    ("🍎 リンゴ", 40),
+    ("🥩 ステーキ", 30),
+    ("⚔ 鋭い剣", 15),
+    ("🎯 必中の弓", 10),
+    ("👑 王の冠", 5),
+]
+choices, weights = zip(*items)
+
+# 🎰 アニメーション用絵文字エフェクト
+GACHA_ANIMATION = ["🎲", "💫", "🎁", "✨", "🔄", "🎉"]
+
 # --- レアリティ出現確率 ---
 RARITY_RATES = {
     "伝説レア": 3,
@@ -459,7 +475,51 @@ async def geocode(city_name):
             lon = data[0]["lon"]
             return float(lat), float(lon)
 
+# 単発ガチャ
+@bot.command()
+async def gachaMine(ctx):
+    user_id = str(ctx.author.id)
 
+    if user_coins[user_id] < 1500:
+        await ctx.send(f"💰 コインが足りません！（現在: {user_coins[user_id]}枚）")
+        return
+
+    user_coins[user_id] -= 1500
+
+    # アニメーション風演出
+    msg = await ctx.send(f"{ctx.author.mention} のガチャ開始！ {GACHA_ANIMATION[0]}")
+    for i in range(5):
+        await asyncio.sleep(0.3)
+        await msg.edit(content=f"{ctx.author.mention} のガチャ開始！ {random.choice(GACHA_ANIMATION)}")
+
+    # 結果
+    result = random.choices(choices, weights=weights, k=1)[0]
+    user_items[user_id].append(result)
+    await msg.edit(content=f"🎉 {ctx.author.mention} のガチャ結果：**{result}** をゲットしました！\n💰 残コイン：{user_coins[user_id]} 枚")
+
+# 10連ガチャ
+@bot.command()
+async def gacha10(ctx):
+    user_id = str(ctx.author.id)
+
+    if user_coins[user_id] < 15000:
+        await ctx.send(f"💰 コインが足りません！（現在: {user_coins[user_id]}枚）")
+        return
+
+    user_coins[user_id] -= 15000
+    await ctx.send(f"🔟連ガチャ開始！ {ctx.author.mention} さん、ワクワク…")
+
+    results = []
+    for i in range(10):
+        await asyncio.sleep(0.2)
+        result = random.choices(choices, weights=weights, k=1)[0]
+        results.append(result)
+        user_items[user_id].append(result)
+
+    result_text = "\n".join([f"{i+1}. {item}" for i, item in enumerate(results)])
+    await ctx.send(f"🎊 {ctx.author.mention} の10連ガチャ結果！\n```\n{result_text}\n```\n💰 残コイン：{user_coins[user_id]} 枚")
+
+    
 @bot.command()
 async def tenki(ctx, *, city: str = None):
     if city is None:

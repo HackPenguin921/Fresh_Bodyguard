@@ -519,7 +519,7 @@ async def gacha10(ctx):
     result_text = "\n".join([f"{i+1}. {item}" for i, item in enumerate(results)])
     await ctx.send(f"🎊 {ctx.author.mention} の10連ガチャ結果！\n```\n{result_text}\n```\n💰 残コイン：{user_coins[user_id]} 枚")
 
-    
+
 @bot.command()
 async def tenki(ctx, *, city: str = None):
     if city is None:
@@ -1437,6 +1437,9 @@ async def golem(ctx):
         "・`!register`：プレイヤー登録できるよ！\n\n"
         "・`!clock`：現在の時間が分かるよ!\n\n"
         "・`!tenki`：現在の天気が分かるよ!\n\n"
+        "・`!gachaMine`：１回だけガチャれるよ。\n\n"
+        "・`!gacha10`：10回ガチャれるよ\n\n"
+
         "ゲームの冒険を存分に楽しんでくださいね！"
     )
     await ctx.send(help_text)

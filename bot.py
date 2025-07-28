@@ -1073,6 +1073,22 @@ async def hyoka(ctx, target: str):
     await ctx.send(f"評価対象: {target}\n評価結果: {score}%\nコメント：{comment}")
 
 @bot.command()
+async def aho(ctx, target: str):
+    comments = [
+        f"{target}よ、あほあほ〜🤣",
+        f"ゆうたで？{target}があほなのはみんな知ってるってｗ",
+        f"{target}の脳みそ、今日は定休日？ww",
+        f"いやマジで、{target}くん…さすがにそれは草🌿",
+        f"{target}よ、もうちょっと賢く生まれてきてもよかったなｗ",
+        f"{target}がまたやらかしたらしいで～ｗｗｗ",
+        f"{target}、今週のあほランキング1位🎉",
+        f"おい{target}、せめて漢字ドリルからやり直そか？ｗ",
+        f"また{target}やんｗｗｗ名物アホ出ました〜ｗ"
+    ]
+    response = random.choice(comments)
+    await ctx.send(response)
+    
+@bot.command()
 async def use_potion(ctx):
     user_id = str(ctx.author.id)
     if user_id not in player_data:

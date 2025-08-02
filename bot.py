@@ -66,6 +66,11 @@ NUM_MINES = 5
 ROWS = 6
 COLUMNS = 7
 
+DIFFICULTY = {
+    "easy": (5, 5, 3),     # 行, 列, 爆弾数
+    "normal": (7, 7, 10),
+    "hard": (9, 9, 20)
+}
 EMOJIS = {
     None: "⚪",
     0: "🔴",  # プレイヤー1
@@ -305,87 +310,6 @@ async def geocode(city_name):
             lon = data[0]["lon"]
             return float(lat), float(lon)
 
-class Cell(discord.ui.Button):
-    def __init__(self, x, y, is_mine):
-        super().__init__(label='⬜', style=discord.ButtonStyle.secondary, row=y)
-        self.x = x
-        self.y = y
-        self.is_mine = is_mine
-        self.revealed = False
-
-    async def callback(self, interaction: discord.Interaction):
-        view: MineSweeperView = self.view
-        if self.revealed or view.finished:
-            return
-
-        self.revealed = True
-
-        if self.is_mine:
-            self.style = discord.ButtonStyle.danger
-            self.label = '💣'
-            view.finished = True
-            for child in view.children:
-                if isinstance(child, Cell) and child.is_mine:
-                    child.label = '💣'
-                    child.style = discord.ButtonStyle.danger
-                    child.disabled = True
-            await interaction.response.edit_message(content="💥 地雷を踏みました！ゲームオーバー", view=view)
-        else:
-            count = view.count_adjacent_mines(self.x, self.y)
-            self.label = str(count) if count > 0 else '⬛'
-            self.style = discord.ButtonStyle.success
-            self.disabled = True
-
-            if view.check_win():
-                view.finished = True
-                await interaction.response.edit_message(content="🎉 すべて開けました！勝利！", view=view)
-            else:
-                await interaction.response.edit_message(view=view)
-
-
-class MineSweeperView(discord.ui.View):
-    def __init__(self, size=GRID_SIZE, mines=NUM_MINES):
-        super().__init__(timeout=None)
-        self.size = size
-        self.mines = mines
-        self.finished = False
-
-        self.grid = [[False] * size for _ in range(size)]
-        mine_positions = random.sample(range(size * size), mines)
-        for pos in mine_positions:
-            x = pos % size
-            y = pos // size
-            self.grid[y][x] = True
-
-        for y in range(size):
-            for x in range(size):
-                button = Cell(x, y, self.grid[y][x])
-                self.add_item(button)
-
-    def count_adjacent_mines(self, x, y):
-        count = 0
-        for dx in [-1, 0, 1]:
-            for dy in [-1, 0, 1]:
-                if dx == 0 and dy == 0:
-                    continue
-                nx = x + dx
-                ny = y + dy
-                if 0 <= nx < self.size and 0 <= ny < self.size:
-                    if self.grid[ny][nx]:
-                        count += 1
-        return count
-
-    def check_win(self):
-        for child in self.children:
-            if isinstance(child, Cell) and not child.is_mine and not child.revealed:
-                return False
-        return True
-
-
-@bot.command()
-async def tntgame(ctx):
-    """マインスイーパーゲームを開始します"""
-    await ctx.send("💣 マインスイーパー開始！", view=MineSweeperView())
 
 class Connect4View(View):
     def __init__(self, player1, player2):
@@ -540,6 +464,107 @@ async def calc(ctx):
     view = CalculatorView()
     await ctx.send("`0`", view=view)
 
+class CellButton(Button):
+    def __init__(self, x, y, is_bomb, view):
+        super().__init__(label="⬛", style=discord.ButtonStyle.secondary, row=y)
+        self.x = x
+        self.y = y
+        self.is_bomb = is_bomb
+        self.view = view
+        self.revealed = False
+        self.flagged = False
+
+    async def callback(self, interaction: discord.Interaction):
+        if interaction.user != self.view.author:
+            await interaction.response.send_message("これはあなたのゲームではありません。", ephemeral=True)
+            return
+
+        if self.revealed:
+            return
+
+        if self.flagged:
+            self.flagged = False
+            self.label = "⬛"
+            await interaction.response.edit_message(view=self.view)
+            return
+
+        if interaction.data.get("custom_id", "").endswith("_flag"):
+            self.flagged = True
+            self.label = "🚩"
+            await interaction.response.edit_message(view=self.view)
+            return
+
+        self.revealed = True
+        if self.is_bomb:
+            self.label = "💣"
+            self.style = discord.ButtonStyle.danger
+            await interaction.response.edit_message(content="💥 爆発しました！ゲームオーバー。", view=self.view)
+            self.view.disable_all()
+        else:
+            count = self.view.count_adjacent_bombs(self.x, self.y)
+            self.label = str(count) if count > 0 else " "
+            self.style = discord.ButtonStyle.success
+            await interaction.response.edit_message(view=self.view)
+            self.view.check_win()
+
+
+class MinesweeperView(View):
+    def __init__(self, width, height, bombs, author):
+        super().__init__(timeout=300)
+        self.author = author
+        self.width = width
+        self.height = height
+        self.bombs = bombs
+        self.cells = {}
+
+        # 爆弾配置
+        bomb_positions = random.sample(range(width * height), bombs)
+        for y in range(height):
+            for x in range(width):
+                idx = y * width + x
+                is_bomb = idx in bomb_positions
+                button = CellButton(x, y, is_bomb, self)
+                self.cells[(x, y)] = button
+                self.add_item(button)
+
+    def get_neighbors(self, x, y):
+        for dx in [-1, 0, 1]:
+            for dy in [-1, 0, 1]:
+                if dx == 0 and dy == 0:
+                    continue
+                nx, ny = x + dx, y + dy
+                if 0 <= nx < self.width and 0 <= ny < self.height:
+                    yield self.cells[(nx, ny)]
+
+    def count_adjacent_bombs(self, x, y):
+        return sum(1 for neighbor in self.get_neighbors(x, y) if neighbor.is_bomb)
+
+    def check_win(self):
+        unrevealed = [b for b in self.children if isinstance(b, CellButton) and not b.revealed and not b.is_bomb]
+        if not unrevealed:
+            for b in self.children:
+                if isinstance(b, CellButton) and b.is_bomb:
+                    b.label = "🚩"
+                    b.style = discord.ButtonStyle.success
+            self.disable_all()
+
+    def disable_all(self):
+        for b in self.children:
+            if isinstance(b, CellButton):
+                b.disabled = True
+
+
+@bot.command()
+async def minesweeper(ctx, mode="easy"):
+    if mode not in DIFFICULTY:
+        await ctx.send("難易度は easy, normal, hard のいずれかです。")
+        return
+
+    width, height, bombs = DIFFICULTY[mode]
+    view = MinesweeperView(width, height, bombs, ctx.author)
+    await ctx.send(f"🧨 マインスイーパー（{mode}モード）を始めます！クリックして爆弾を避けよう。", view=view)
+
+    
 class FoodMakerView(View):
     def __init__(self, food_type):
         super().__init__(timeout=60)

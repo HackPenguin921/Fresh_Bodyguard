@@ -77,18 +77,18 @@ PLAYER = "⭕"
 CPU = "❌"
 EMPTY = "⬜"
 
-# 安全なeval用関数
-allowed_names = {
-    k: getattr(math, k) for k in dir(math) if not k.startswith("__")
-}
-allowed_names.update({
-    "abs": abs,
+# 安全に評価する辞書
+safe_dict = {
+    "sin": math.sin,
+    "cos": math.cos,
+    "tan": math.tan,
+    "log": math.log10,
+    "ln": math.log,
+    "sqrt": math.sqrt,
     "pi": math.pi,
     "e": math.e,
-    "deg": math.degrees,
-    "rad": math.radians,
-    "^": pow,  # 擬似対応
-})
+    "__builtins__": {}
+}
 
 
 DATA_FILE = "player_data.json"
@@ -493,55 +493,54 @@ def safe_eval(expr):
 
 class CalculatorView(View):
     def __init__(self):
-        super().__init__(timeout=120)
+        super().__init__(timeout=180)
         self.expression = ""
-
         layout = [
             ["7", "8", "9", "/"],
             ["4", "5", "6", "*"],
             ["1", "2", "3", "-"],
-            ["0", ".", "(", "+)"],
-            ["pi", "e", "sqrt(", "^"],
-            ["sin(", "cos(", "tan(", "log("],
-            ["rad(", "deg(", ")", "="],
-            ["C"],
+            ["0", ".", "=", "+"],
+            ["(", ")", "C", "√"],
+            ["sin", "cos", "log", "DEL"]
         ]
 
         for row in layout:
             for item in row:
-                style = discord.ButtonStyle.secondary
-                if item in ["=", "C"]:
-                    style = discord.ButtonStyle.danger if item == "C" else discord.ButtonStyle.success
+                self.add_item(CalcButton(label=item))
 
-                self.add_item(CalcButton(label=item, style=style))
-
-    async def update(self, interaction: discord.Interaction):
-        await interaction.response.edit_message(content=f"📐 式: `{self.expression}`", view=self)
-
+    async def update_message(self, interaction):
+        await interaction.response.edit_message(content=f"`{self.expression or '0'}`", view=self)
 
 class CalcButton(Button):
-    def __init__(self, label, style=discord.ButtonStyle.secondary):
-        super().__init__(label=label, style=style)
+    def __init__(self, label):
+        super().__init__(label=label, style=discord.ButtonStyle.secondary)
 
     async def callback(self, interaction: discord.Interaction):
         view: CalculatorView = self.view
+        label = self.label
 
-        if self.label == "=":
-            result = safe_eval(view.expression)
-            view.expression = result
-        elif self.label == "C":
+        if label == "=":
+            try:
+                expr = view.expression.replace("√", "sqrt")
+                result = eval(expr, safe_dict)
+                view.expression = str(result)
+            except Exception:
+                view.expression = "Error"
+        elif label == "C":
             view.expression = ""
+        elif label == "DEL":
+            view.expression = view.expression[:-1]
         else:
-            view.expression += self.label
+            view.expression += label
 
-        await view.update(interaction)
-
+        await view.update_message(interaction)
 
 @bot.command()
 async def calc(ctx):
-    """ボタン式関数電卓を開く"""
     view = CalculatorView()
-    await ctx.send("📐 関数電卓を開きました。ボタンを押して式を入力してください。", view=view)
+    await ctx.send("`0`", view=view)
+
+    
 class WatameView(View):
     def __init__(self):
         super().__init__(timeout=60)

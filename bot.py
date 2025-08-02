@@ -466,6 +466,48 @@ async def connect4(ctx, opponent: discord.Member):
     board_display = await view.update_board()
     await ctx.send(f"{board_display}\n{ctx.author.mention} vs {opponent.mention}\n{ctx.author.mention} の番です！", view=view)
 
+class WatameView(View):
+    def __init__(self):
+        super().__init__(timeout=60)
+        self.size = 0
+        self.max_size = random.randint(5, 10)  # 完成サイズ
+        self.failed = False
+
+        self.button = Button(label="ぐるぐるする🍭", style=discord.ButtonStyle.primary)
+        self.button.callback = self.spin
+        self.add_item(self.button)
+
+    async def spin(self, interaction: discord.Interaction):
+        if self.failed:
+            return
+
+        self.size += 1
+
+        if self.size < self.max_size:
+            await interaction.response.edit_message(
+                content=f"綿あめぐるぐる中... {self.size}周目！🍬\n{self.size * '🍭'}",
+                view=self
+            )
+        elif self.size == self.max_size:
+            self.button.disabled = True
+            await interaction.response.edit_message(
+                content=f"🎉 完成！ふわふわ巨大綿あめができたよ！ {self.size}周！\n{'🍭' * self.size}",
+                view=self
+            )
+        else:
+            self.button.disabled = True
+            self.failed = True
+            await interaction.response.edit_message(
+                content=f"💥 やりすぎた！綿あめが爆発した！ {self.size}周...\n💣🍬💣",
+                view=self
+            )
+
+
+@bot.command()
+async def watame(ctx):
+    """綿あめぐるぐるゲームを始めるよ！"""
+    view = WatameView()
+    await ctx.send("🍬 綿あめメーカー起動！ボタンを押してふわふわにしよう！", view=view)
     
 @bot.command()
 async def tenki(ctx, *, city: str = None):

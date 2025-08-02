@@ -58,6 +58,17 @@ class PaginatorView(View):
             self.current_page += 1
             await self.update_message(interaction)
 
+GRID_SIZE = 5
+NUM_MINES = 5
+
+ROWS = 6
+COLUMNS = 7
+
+EMOJIS = {
+    None: "⚪",
+    0: "🔴",  # プレイヤー1
+    1: "🔵",  # プレイヤー2
+}
 
 # 絵文字
 PLAYER = "⭕"
@@ -278,7 +289,184 @@ async def geocode(city_name):
             lon = data[0]["lon"]
             return float(lat), float(lon)
 
+class Cell(discord.ui.Button):
+    def __init__(self, x, y, is_mine):
+        super().__init__(label='⬜', style=discord.ButtonStyle.secondary, row=y)
+        self.x = x
+        self.y = y
+        self.is_mine = is_mine
+        self.revealed = False
 
+    async def callback(self, interaction: discord.Interaction):
+        view: MineSweeperView = self.view
+        if self.revealed or view.finished:
+            return
+
+        self.revealed = True
+
+        if self.is_mine:
+            self.style = discord.ButtonStyle.danger
+            self.label = '💣'
+            view.finished = True
+            for child in view.children:
+                if isinstance(child, Cell) and child.is_mine:
+                    child.label = '💣'
+                    child.style = discord.ButtonStyle.danger
+                    child.disabled = True
+            await interaction.response.edit_message(content="💥 地雷を踏みました！ゲームオーバー", view=view)
+        else:
+            count = view.count_adjacent_mines(self.x, self.y)
+            self.label = str(count) if count > 0 else '⬛'
+            self.style = discord.ButtonStyle.success
+            self.disabled = True
+
+            if view.check_win():
+                view.finished = True
+                await interaction.response.edit_message(content="🎉 すべて開けました！勝利！", view=view)
+            else:
+                await interaction.response.edit_message(view=view)
+
+
+class MineSweeperView(discord.ui.View):
+    def __init__(self, size=GRID_SIZE, mines=NUM_MINES):
+        super().__init__(timeout=None)
+        self.size = size
+        self.mines = mines
+        self.finished = False
+
+        self.grid = [[False] * size for _ in range(size)]
+        mine_positions = random.sample(range(size * size), mines)
+        for pos in mine_positions:
+            x = pos % size
+            y = pos // size
+            self.grid[y][x] = True
+
+        for y in range(size):
+            for x in range(size):
+                button = Cell(x, y, self.grid[y][x])
+                self.add_item(button)
+
+    def count_adjacent_mines(self, x, y):
+        count = 0
+        for dx in [-1, 0, 1]:
+            for dy in [-1, 0, 1]:
+                if dx == 0 and dy == 0:
+                    continue
+                nx = x + dx
+                ny = y + dy
+                if 0 <= nx < self.size and 0 <= ny < self.size:
+                    if self.grid[ny][nx]:
+                        count += 1
+        return count
+
+    def check_win(self):
+        for child in self.children:
+            if isinstance(child, Cell) and not child.is_mine and not child.revealed:
+                return False
+        return True
+
+
+@bot.command()
+async def tntgame(ctx):
+    """マインスイーパーゲームを開始します"""
+    await ctx.send("💣 マインスイーパー開始！", view=MineSweeperView())
+
+class Connect4View(View):
+    def __init__(self, player1, player2):
+        super().__init__(timeout=None)
+        self.players = [player1, player2]
+        self.turn = 0
+        self.board = [[None for _ in range(COLUMNS)] for _ in range(ROWS)]
+        self.message = None
+        self.finished = False
+
+        for col in range(COLUMNS):
+            self.add_item(Connect4Button(col))
+
+    async def update_board(self):
+        display = ""
+        for row in self.board:
+            display += "".join(EMOJIS[cell] for cell in row) + "\n"
+        return display
+
+    def drop_piece(self, col, player_index):
+        for row in reversed(range(ROWS)):
+            if self.board[row][col] is None:
+                self.board[row][col] = player_index
+                return row, col
+        return None
+
+    def check_winner(self, last_row, last_col, player_index):
+        directions = [(1, 0), (0, 1), (1, 1), (1, -1)]
+
+        for dx, dy in directions:
+            count = 1
+
+            for dir in [1, -1]:
+                x, y = last_col, last_row
+                while True:
+                    x += dx * dir
+                    y += dy * dir
+                    if 0 <= x < COLUMNS and 0 <= y < ROWS and self.board[y][x] == player_index:
+                        count += 1
+                    else:
+                        break
+            if count >= 4:
+                return True
+        return False
+
+    def board_full(self):
+        return all(self.board[0][col] is not None for col in range(COLUMNS))
+
+
+class Connect4Button(Button):
+    def __init__(self, column):
+        super().__init__(label=str(column + 1), style=discord.ButtonStyle.secondary)
+        self.column = column
+
+    async def callback(self, interaction: discord.Interaction):
+        view: Connect4View = self.view
+        if view.finished:
+            return await interaction.response.send_message("このゲームはすでに終了しています。", ephemeral=True)
+
+        current_player = view.players[view.turn]
+        if interaction.user != current_player:
+            return await interaction.response.send_message("あなたの番ではありません！", ephemeral=True)
+
+        move = view.drop_piece(self.column, view.turn)
+        if move is None:
+            return await interaction.response.send_message("この列はもう埋まっています！", ephemeral=True)
+
+        last_row, last_col = move
+        if view.check_winner(last_row, last_col, view.turn):
+            board_display = await view.update_board()
+            view.finished = True
+            for child in view.children:
+                child.disabled = True
+            await interaction.response.edit_message(content=f"{board_display}\n🎉 {current_player.mention} の勝ち！", view=view)
+        elif view.board_full():
+            board_display = await view.update_board()
+            view.finished = True
+            for child in view.children:
+                child.disabled = True
+            await interaction.response.edit_message(content=f"{board_display}\n🤝 引き分けです！", view=view)
+        else:
+            view.turn = 1 - view.turn
+            board_display = await view.update_board()
+            await interaction.response.edit_message(content=f"{board_display}\n{view.players[view.turn].mention} の番です！", view=view)
+
+
+@bot.command()
+async def connect4(ctx, opponent: discord.Member):
+    """2人用のConnect4（四目並べ）ゲームを開始します。"""
+    if opponent.bot:
+        return await ctx.send("Botとは対戦できません。")
+
+    view = Connect4View(ctx.author, opponent)
+    board_display = await view.update_board()
+    await ctx.send(f"{board_display}\n{ctx.author.mention} vs {opponent.mention}\n{ctx.author.mention} の番です！", view=view)
+
+    
 @bot.command()
 async def tenki(ctx, *, city: str = None):
     if city is None:

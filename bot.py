@@ -16,6 +16,8 @@ import asyncio
 from datetime import datetime
 import pytz
 import aiohttp
+import math
+
 
 
 
@@ -74,6 +76,20 @@ EMOJIS = {
 PLAYER = "⭕"
 CPU = "❌"
 EMPTY = "⬜"
+
+# 安全なeval用関数
+allowed_names = {
+    k: getattr(math, k) for k in dir(math) if not k.startswith("__")
+}
+allowed_names.update({
+    "abs": abs,
+    "pi": math.pi,
+    "e": math.e,
+    "deg": math.degrees,
+    "rad": math.radians,
+    "^": pow,  # 擬似対応
+})
+
 
 DATA_FILE = "player_data.json"
 player_data = defaultdict(lambda: {
@@ -466,6 +482,66 @@ async def connect4(ctx, opponent: discord.Member):
     board_display = await view.update_board()
     await ctx.send(f"{board_display}\n{ctx.author.mention} vs {opponent.mention}\n{ctx.author.mention} の番です！", view=view)
 
+def safe_eval(expr):
+    try:
+        expr = expr.replace("^", "**")  # "^" を pythonの "**" に変換
+        result = eval(expr, {"__builtins__": None}, allowed_names)
+        return str(result)
+    except Exception as e:
+        return f"⚠️ Error: {e}"
+
+
+class CalculatorView(View):
+    def __init__(self):
+        super().__init__(timeout=120)
+        self.expression = ""
+
+        layout = [
+            ["7", "8", "9", "/"],
+            ["4", "5", "6", "*"],
+            ["1", "2", "3", "-"],
+            ["0", ".", "(", "+)"],
+            ["pi", "e", "sqrt(", "^"],
+            ["sin(", "cos(", "tan(", "log("],
+            ["rad(", "deg(", ")", "="],
+            ["C"],
+        ]
+
+        for row in layout:
+            for item in row:
+                style = discord.ButtonStyle.secondary
+                if item in ["=", "C"]:
+                    style = discord.ButtonStyle.danger if item == "C" else discord.ButtonStyle.success
+
+                self.add_item(CalcButton(label=item, style=style))
+
+    async def update(self, interaction: discord.Interaction):
+        await interaction.response.edit_message(content=f"📐 式: `{self.expression}`", view=self)
+
+
+class CalcButton(Button):
+    def __init__(self, label, style=discord.ButtonStyle.secondary):
+        super().__init__(label=label, style=style)
+
+    async def callback(self, interaction: discord.Interaction):
+        view: CalculatorView = self.view
+
+        if self.label == "=":
+            result = safe_eval(view.expression)
+            view.expression = result
+        elif self.label == "C":
+            view.expression = ""
+        else:
+            view.expression += self.label
+
+        await view.update(interaction)
+
+
+@bot.command()
+async def calc(ctx):
+    """ボタン式関数電卓を開く"""
+    view = CalculatorView()
+    await ctx.send("📐 関数電卓を開きました。ボタンを押して式を入力してください。", view=view)
 class WatameView(View):
     def __init__(self):
         super().__init__(timeout=60)
@@ -508,7 +584,7 @@ async def watame(ctx):
     """綿あめぐるぐるゲームを始めるよ！"""
     view = WatameView()
     await ctx.send("🍬 綿あめメーカー起動！ボタンを押してふわふわにしよう！", view=view)
-    
+
 @bot.command()
 async def tenki(ctx, *, city: str = None):
     if city is None:

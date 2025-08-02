@@ -470,7 +470,6 @@ class CellButton(Button):
         self.x = x
         self.y = y
         self.is_bomb = is_bomb
-        self.view = view
         self.revealed = False
         self.flagged = False
 

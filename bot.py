@@ -555,7 +555,7 @@ class MinesweeperView(View):
 
 
 @bot.command()
-async def minesweeper(ctx, mode="easy"):
+async def tntgame(ctx, mode="easy"):
     if mode not in DIFFICULTY:
         await ctx.send("難易度は easy, normal, hard のいずれかです。")
         return
@@ -564,7 +564,7 @@ async def minesweeper(ctx, mode="easy"):
     view = MinesweeperView(width, height, bombs, ctx.author)
     await ctx.send(f"🧨 マインスイーパー（{mode}モード）を始めます！クリックして爆弾を避けよう。", view=view)
 
-    
+
 class FoodMakerView(View):
     def __init__(self, food_type):
         super().__init__(timeout=60)

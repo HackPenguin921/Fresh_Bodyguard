@@ -540,13 +540,6 @@ async def calc(ctx):
     view = CalculatorView()
     await ctx.send("`0`", view=view)
 
-import discord
-from discord.ext import commands
-from discord.ui import Button, View
-import math
-
-bot = commands.Bot(command_prefix="!", intents=discord.Intents.default())
-
 class FoodMakerView(View):
     def __init__(self, food_type):
         super().__init__(timeout=60)

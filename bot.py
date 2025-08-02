@@ -540,19 +540,21 @@ async def calc(ctx):
     view = CalculatorView()
     await ctx.send("`0`", view=view)
 
+import discord
+from discord.ext import commands
+from discord.ui import Button, View
+import math
+
+bot = commands.Bot(command_prefix="!", intents=discord.Intents.default())
+
 class FoodMakerView(View):
     def __init__(self, food_type):
         super().__init__(timeout=60)
         self.food_type = food_type
         self.steps = 0
         self.result = None
-        self.add_item(Button(label="次の工程へ", style=discord.ButtonStyle.primary, custom_id="next_step"))
 
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        # すべてのユーザーが押せる
-        return True
-
-    @discord.ui.button(label="次の工程へ", style=discord.ButtonStyle.primary, custom_id="next_step")
+    @discord.ui.button(label="次の工程へ", style=discord.ButtonStyle.primary)
     async def next_step(self, interaction: discord.Interaction, button: Button):
         self.steps += 1
 
@@ -596,26 +598,21 @@ class FoodMakerView(View):
 
 @bot.command()
 async def takoyaki(ctx):
-    """たこ焼きを作るゲームを開始"""
     view = FoodMakerView("takoyaki")
     await ctx.send("たこ焼き作り開始！ボタンを押して工程を進めてね。", view=view)
 
 @bot.command()
 async def taiyaki(ctx):
-    """たい焼きを作るゲームを開始"""
     view = FoodMakerView("taiyaki")
     await ctx.send("たい焼き作り開始！ボタンを押して工程を進めてね。", view=view)
 
 @bot.command()
 async def icecream(ctx):
-    """アイス作りゲームを開始"""
     view = FoodMakerView("icecream")
     await ctx.send("アイスクリーム作り開始！ボタンを押して工程を進めてね。", view=view)
 
-# Botの速度について
 @bot.command()
 async def speed(ctx):
-    """Botの応答速度を測定"""
     import time
     start = time.perf_counter()
     msg = await ctx.send("速度測定中…")
@@ -623,7 +620,6 @@ async def speed(ctx):
     latency = (end - start) * 1000  # ms
     await msg.edit(content=f"Botの応答速度は約 {latency:.1f} ms です。")
 
-    
 class WatameView(View):
     def __init__(self):
         super().__init__(timeout=60)

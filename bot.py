@@ -423,6 +423,48 @@ async def comet(ctx):
 
     await ctx.send(comet_string)
 
+prizes = ["🐶イヌ", "🐱ネコ", "🐧ペンギン", "🧸クマ", "🧓おじさん", "🐉超レアドラゴン", "🦄ユニコーン"]
+
+class CraneGameView(View):
+    def __init__(self):
+        super().__init__(timeout=15)
+        self.position = 2  # 中央からスタート（0~4の5マス）
+        self.dropped = False
+        self.prize = random.choice(prizes)
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        return True  # 誰でもボタン押せるように
+
+    @discord.ui.button(label="← 左", style=discord.ButtonStyle.primary)
+    async def move_left(self, interaction: discord.Interaction, button: Button):
+        if self.position > 0:
+            self.position -= 1
+        await interaction.response.edit_message(content=self._game_board(), view=self)
+
+    @discord.ui.button(label="落とす 🎮", style=discord.ButtonStyle.danger)
+    async def drop(self, interaction: discord.Interaction, button: Button):
+        self.dropped = True
+        result = "❌ハズレ！" if random.randint(0, 4) != self.position else f"🎉ゲット！ {self.prize}"
+        for child in self.children:
+            child.disabled = True
+        await interaction.response.edit_message(content=f"{self._game_board()}\n{result}", view=self)
+
+    @discord.ui.button(label="→ 右", style=discord.ButtonStyle.primary)
+    async def move_right(self, interaction: discord.Interaction, button: Button):
+        if self.position < 4:
+            self.position += 1
+        await interaction.response.edit_message(content=self._game_board(), view=self)
+
+    def _game_board(self):
+        bar = ["⬜"] * 5
+        bar[self.position] = "🔽"
+        return "クレーンゲーム開始！\n" + "".join(bar) + "\n🎁 " + self.prize
+
+@bot.command(name="クレーン")
+async def crane_game(ctx):
+    view = CraneGameView()
+    await ctx.send("🎮 クレーンゲームを始めよう！", view=view)
+    
 @bot.command()
 async def connect4(ctx, opponent: discord.Member):
     """2人用のConnect4（四目並べ）ゲームを開始します。"""
@@ -436,31 +478,75 @@ async def connect4(ctx, opponent: discord.Member):
 @bot.command(name="犬ちゃん大放出")
 async def dogs(ctx):
     count = random.randint(1, 100)
-    dog_string = "🐶" * count
+    dog_string = "🐶 ワン！ " * count
 
-    # 🐾 他の動物（20%で出現）
+    # 🐾 他の動物（20%で出現、鳴き声つき）
     animal_string = ""
     if random.random() < 0.2:
-        other_animals = ["🐱", "🐰", "🐦", "🦊", "🦝", "🦓", "🦁", "🐮", "🐷", "🦜", "🦉", "🐸", "🐍"]
-        animal_string = "\n" + "".join(random.choices(other_animals, k=random.randint(3, 7)))
+        other_animals = [
+            ("🐱", "ニャー"),
+            ("🐰", "ピョン"),
+            ("🐦", "チュンチュン"),
+            ("🦊", "コンコン"),
+            ("🦝", "ガサガサ"),
+            ("🦓", "ヒヒーン"),
+            ("🦁", "ガオー"),
+            ("🐮", "モー"),
+            ("🐷", "ブーブー"),
+            ("🦜", "パパァ！"),
+            ("🦉", "ホーホー"),
+            ("🐸", "ゲコゲコ"),
+            ("🐍", "シャー…"),
+        ]
+        animal_emojis = random.choices(other_animals, k=random.randint(3, 6))
+        for emoji, cry in animal_emojis:
+            animal_string += f"\n{emoji} {cry}"
 
-    # 🧔 おじさん（10%で出現）
+    # 🧔 おじさん（10%で登場）
     ojisan = ""
     if random.random() < 0.1:
         ojisan_lines = [
-            "🧔「ワンちゃんよりも僕を見てよ…」",
-            "🧔「今日も…君を探してたんだ」",
-            "🧔「シャーッ！…あ、犬じゃなかった」",
-            "🧔「あれ、誰の犬？僕の膝に乗ってきたよ？」",
+            "🧔「ワン！ワン！ …あ、間違えた」",
+            "🧔「モー…って牛の鳴き声だっけ？」",
+            "🧔「チュンチュン…君の心にさえずるよ」",
+            "🧔「シャーッ！…って猫の怒り声…知ってる？」",
         ]
-        ojisan = "\nシャーッ！🐶ちらちら…\n" + random.choice(ojisan_lines)
+        ojisan = "\n🔔 シャーッ！動物たちがざわめく…\n" + random.choice(ojisan_lines)
 
-    # 🐲 超レア（1%で出現）
+    # 🐲 超レア（1%）
     rare = ""
-    if random.random() < 0.01:
-        rare = "\n🌟 超レア出現！ 🌟\n🐲「伝説の金のドラゴンが降臨した…！」"
+    if random.random() < 0.1:
+        rare = "\n🌟 超レア出現！ 🌟\n🐲「グォォオオーーン！！🔥伝説の金のドラゴンが空を裂いた！」"
 
-    await ctx.send(dog_string + animal_string + ojisan + rare)
+    await ctx.send(dog_string + "\n" + animal_string + ojisan + rare)
+
+@bot.command(name="ゆうた出現")
+async def yuta(ctx):
+    count = random.randint(1, 100)
+
+    characters = [
+        ("🐶", "ワン！"),
+        ("🐱", "にゃー"),
+        ("🐸", "ゲコッ"),
+        ("🐘", "パオーン"),
+        ("🐓", "コケコッコー"),
+        ("🐒", "ウキッ"),
+        ("👨‍🦰", "シャーッ！！！"),
+    ]
+
+    result = ""
+
+    for _ in range(count):
+        emoji, sound = random.choice(characters)
+        result += f"{emoji}({sound}) "
+
+    # 超レア：ゆうた本人（2%の確率）
+    if random.random() < 0.20:
+        result += "\n🧑‍🎤「俺がゆうたや！」"
+
+    await ctx.send(result)
+
+
 
 def safe_eval(expr):
     try:

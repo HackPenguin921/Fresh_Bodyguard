@@ -273,6 +273,12 @@ fake_responses = [
     "🤔 その話、前にも誰かが言ってたような…",
     "💤 嘘か本当かより、眠くなる話だね。"
 ]
+ojisan_lines = [
+    "🧔「やあ、君も桜を見に来たのかい？」",
+    "🧔「彗星よりも君のほうが輝いてるね…ﾌﾋﾋ」",
+    "🧔「今日も一人なの？ ぼくもだよ…」",
+    "🧔「こっちにおいでよ、いい桜スポット知ってるんだ」",
+]
 
 DATA_FILE = "game_data.json"
 
@@ -395,7 +401,28 @@ class Connect4Button(Button):
             board_display = await view.update_board()
             await interaction.response.edit_message(content=f"{board_display}\n{view.players[view.turn].mention} の番です！", view=view)
 
+@bot.command(name="桜よ舞い降りろ！")
+async def sakura(ctx):
+    count = random.randint(1, 100)
+    sakura_string = "🌸" * count
 
+    if random.random() < 0.05:  # 5%の確率
+        ojisan = random.choice(ojisan_lines)
+        sakura_string += f"\n{ojisan}"
+
+    await ctx.send(sakura_string)
+
+@bot.command(name="彗星に願いを")
+async def comet(ctx):
+    count = random.randint(1, 100)
+    comet_string = "☄️" * count
+
+    if random.random() < 0.05:
+        ojisan = random.choice(ojisan_lines)
+        comet_string += f"\n{ojisan}"
+
+    await ctx.send(comet_string)
+    
 @bot.command()
 async def connect4(ctx, opponent: discord.Member):
     """2人用のConnect4（四目並べ）ゲームを開始します。"""

@@ -401,7 +401,7 @@ class Connect4Button(Button):
             board_display = await view.update_board()
             await interaction.response.edit_message(content=f"{board_display}\n{view.players[view.turn].mention} の番です！", view=view)
 
-@bot.command(name="桜よ舞い降りろ！")
+@bot.command(name="桜よ舞い降りろ")
 async def sakura(ctx):
     count = random.randint(1, 100)
     sakura_string = "🌸" * count
@@ -422,7 +422,7 @@ async def comet(ctx):
         comet_string += f"\n{ojisan}"
 
     await ctx.send(comet_string)
-    
+
 @bot.command()
 async def connect4(ctx, opponent: discord.Member):
     """2人用のConnect4（四目並べ）ゲームを開始します。"""

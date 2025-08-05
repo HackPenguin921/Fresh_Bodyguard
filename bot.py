@@ -406,7 +406,7 @@ async def sakura(ctx):
     count = random.randint(1, 100)
     sakura_string = "🌸" * count
 
-    if random.random() < 0.05:  # 5%の確率
+    if random.random() < 0.4:  # 5%の確率
         ojisan = random.choice(ojisan_lines)
         sakura_string += f"\n{ojisan}"
 

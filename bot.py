@@ -433,6 +433,35 @@ async def connect4(ctx, opponent: discord.Member):
     board_display = await view.update_board()
     await ctx.send(f"{board_display}\n{ctx.author.mention} vs {opponent.mention}\n{ctx.author.mention} の番です！", view=view)
 
+@bot.command(name="犬ちゃん大放出")
+async def dogs(ctx):
+    count = random.randint(1, 100)
+    dog_string = "🐶" * count
+
+    # 🐾 他の動物（20%で出現）
+    animal_string = ""
+    if random.random() < 0.2:
+        other_animals = ["🐱", "🐰", "🐦", "🦊", "🦝", "🦓", "🦁", "🐮", "🐷", "🦜", "🦉", "🐸", "🐍"]
+        animal_string = "\n" + "".join(random.choices(other_animals, k=random.randint(3, 7)))
+
+    # 🧔 おじさん（10%で出現）
+    ojisan = ""
+    if random.random() < 0.1:
+        ojisan_lines = [
+            "🧔「ワンちゃんよりも僕を見てよ…」",
+            "🧔「今日も…君を探してたんだ」",
+            "🧔「シャーッ！…あ、犬じゃなかった」",
+            "🧔「あれ、誰の犬？僕の膝に乗ってきたよ？」",
+        ]
+        ojisan = "\nシャーッ！🐶ちらちら…\n" + random.choice(ojisan_lines)
+
+    # 🐲 超レア（1%で出現）
+    rare = ""
+    if random.random() < 0.01:
+        rare = "\n🌟 超レア出現！ 🌟\n🐲「伝説の金のドラゴンが降臨した…！」"
+
+    await ctx.send(dog_string + animal_string + ojisan + rare)
+
 def safe_eval(expr):
     try:
         expr = expr.replace("^", "**")  # "^" を pythonの "**" に変換
